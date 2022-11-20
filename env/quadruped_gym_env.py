@@ -352,21 +352,21 @@ class QuadrupedGymEnv(gym.Env):
     kpCartesian = self._robot_config.kpCartesian
     kdCartesian = self._robot_config.kdCartesian
     # get current motor velocities
-    qd = self.robot.GetMotorVelocities()
+    dq = self.robot.GetMotorVelocities()
+    des_joint_vel = 0 # ????????????????????????????????????????????????????????
 
     action = np.zeros(12)
     for i in range(4):
-      # get Jacobian and foot position in leg frame for leg i (see ComputeJacobianAndPosition() in quadruped.py)
-      # [TODO]
-      # desired foot position i (from RL above)
-      Pd = np.zeros(3) # [TODO]
-      # desired foot velocity i
-      vd = np.zeros(3) 
-      # foot velocity in leg frame i (Equation 2)
-      # [TODO]
-      # calculate torques with Cartesian PD (Equation 5) [Make sure you are using matrix multiplications]
-      tau = np.zeros(3) # [TODO]
-
+      # Get current Jacobian and foot position in leg frame (see ComputeJacobianAndPosition() in quadruped.py)
+      # [TODO] 
+      J, p = self.robot.ComputeJacobianAndPosition(i)
+      # Get current foot velocity in leg frame (Equation 2)
+      # [TODO] 
+      v = J * dq
+      des_v = J * des_joint_vel
+      # Calculate torque contribution from Cartesian PD (Equation 5) [Make sure you are using matrix multiplications]
+      # tau += np.zeros(3) # [TODO]
+      tau += np.transpose(J) @ (kpCartesian*(des_foot_pos-p) + kdCartesian*(des_v - v))
       action[3*i:3*i+3] = tau
 
     return action
@@ -396,22 +396,24 @@ class QuadrupedGymEnv(gym.Env):
     # get current motor velocities
     q = self.robot.GetMotorAngles()
     dq = self.robot.GetMotorVelocities()
+    des_joint_vel = 0 # ??????????????????????????????????????????????????'
 
     action = np.zeros(12)
     # loop through each leg
     for i in range(4):
-      # get desired foot i pos (xi, yi, zi)
-      x = xs[i]
-      y = sideSign[i] * foot_y # careful of sign
-      z = zs[i]
+      # initialize torques for legi
+      tau = np.zeros(3)
+      # get desired foot i pos (xi, yi, zi) in leg frame
+      leg_xyz = np.array([xs[i],sideSign[i] * foot_y,zs[i]])
+      # call inverse kinematics to get corresponding joint angles (see ComputeInverseKinematics() in quadruped.py)
+      # leg_q = np.zeros(3) # [TODO] 
+      leg_q = self.robot.ComputeInverseKinematics(i ,leg_xyz)
+      # Add joint PD contribution to tau for leg i (Equation 4)
+      # tau += np.zeros(3) # [TODO] 
+      tau = kp*(leg_q-q) + kd*(des_joint_vel - dq)
 
-      # call inverse kinematics to get corresponding joint angles
-      q_des = np.zeros(3) # [TODO]
-      # Add joint PD contribution to tau
-      tau = np.zeros(3) # [TODO] 
-
-      # add Cartesian PD contribution (as you wish)
-      # tau +=
+      # add Cartesian PD contribution (as you wish) ?????????????????????????????????????????
+      # tau += self.ScaleActionToCartesianPos(actions)
 
       action[3*i:3*i+3] = tau
 
