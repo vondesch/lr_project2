@@ -353,11 +353,7 @@ class QuadrupedGymEnv(gym.Env):
     kdCartesian = self._robot_config.kdCartesian
     # get current motor velocities
     dq = self.robot.GetMotorVelocities()
-<<<<<<< HEAD
     des_joint_vel = np.zeros(3)
-=======
-    des_joint_vel = np.zeros(3) # ????????????????????????????????????????????????????????
->>>>>>> main
 
     action = np.zeros(12)
     for i in range(4):
@@ -366,11 +362,7 @@ class QuadrupedGymEnv(gym.Env):
       J, p = self.robot.ComputeJacobianAndPosition(i)
       # Get current foot velocity in leg frame (Equation 2)
       # [TODO] 
-<<<<<<< HEAD
-      v = J @ dq[i*3:i*3+2]
-=======
       v = J @ dq[i*3:i*3+3]
->>>>>>> main
       des_v = J @ des_joint_vel
       # Calculate torque contribution from Cartesian PD (Equation 5) [Make sure you are using matrix multiplications]
       # tau += np.zeros(3) # [TODO]
