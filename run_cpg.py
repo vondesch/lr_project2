@@ -78,6 +78,10 @@ kd=np.array([2,2,2])
 kpCartesian = np.diag([500]*3)
 kdCartesian = np.diag([20]*3)
 
+# matrices for the plots
+foot_pos = np.zeros([3,TEST_STEPS])
+des_foot_pos = np.zeros([1,TEST_STEPS])
+
 for j in range(TEST_STEPS):
   # initialize torque array to send to motors
   action = np.zeros(12) 
@@ -86,7 +90,7 @@ for j in range(TEST_STEPS):
   # [TODO] get current motor angles and velocities for joint PD, see GetMotorAngles(), GetMotorVelocities() in quadruped.py
   q = env.robot.GetMotorAngles()
   dq = env.robot.GetMotorVelocities()
-  des_joint_vel = 0 #??????????????????????????????????????????????????????????????
+  des_joint_vel = np.zeros(3)
 
   # loop through desired foot positions and calculate torques
   for i in range(4):
@@ -99,7 +103,7 @@ for j in range(TEST_STEPS):
     leg_q = env.robot.ComputeInverseKinematics(i ,leg_xyz)
     # Add joint PD contribution to tau for leg i (Equation 4)
     # tau += np.zeros(3) # [TODO] 
-    tau += kp*(leg_q-q) + kd*(des_joint_vel - dq)
+    tau += kp*(leg_q-q[i*3:i*3+3]) + kd*(des_joint_vel - dq[i*3:i*3+3])
 
     # add Cartesian PD contribution
     if ADD_CARTESIAN_PD:
@@ -108,17 +112,21 @@ for j in range(TEST_STEPS):
       J, p = env.robot.ComputeJacobianAndPosition(i)
       # Get current foot velocity in leg frame (Equation 2)
       # [TODO] 
-      v = J * dq
-      des_v = J * des_joint_vel
+      v = J @ dq[i*3:i*3+3]
+      des_v = J @ des_joint_vel
       # Calculate torque contribution from Cartesian PD (Equation 5) [Make sure you are using matrix multiplications]
       # tau += np.zeros(3) # [TODO]
-      tau += np.transpose(J) @ (kpCartesian*(leg_xyz-p) + kdCartesian*(des_v - v))
+      tau += np.transpose(J) @ (kpCartesian@(leg_xyz-p) + kdCartesian@(des_v - v))
 
     # Set tau for legi in action vector
     action[3*i:3*i+3] = tau
 
+    # fill the matrices for the plots
+    foot_pos[:,j] = env.robot.ComputeJacobianAndPosition(0)[1]
+    des_foot_pos[:,j] = xs[0]
+
   # send torques to robot and simulate TIME_STEP seconds 
-  env.step(action) 
+  env.step(action)
 
   # [TODO] save any CPG or robot states
 
@@ -128,7 +136,10 @@ for j in range(TEST_STEPS):
 # PLOTS
 #####################################################
 # example
-# fig = plt.figure()
-# plt.plot(t,joint_pos[1,:], label='FR thigh')
-# plt.legend()
-# plt.show()
+fig = plt.figure()
+plt.plot(t,foot_pos[0,:])
+plt.plot(t,des_foot_pos[0,:])
+#plt.legend()
+plt.show()
+
+#cpg, foot xz
