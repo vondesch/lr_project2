@@ -153,7 +153,11 @@ class HopfNetwork():
     
     # map CPG variables to Cartesian foot xz positions (Equations 8, 9) 
     x = np.zeros(4) # [TODO]
+<<<<<<< HEAD
     x = -self._des_step_len*self.X[0,:]*np.cos(self.X[1,:])
+=======
+    x = -self._des_step_len*self.X[0,:]*np.sin(self.X[1,:])
+>>>>>>> main
     z = np.zeros(4) # [TODO]
     # loop through each leg's oscillator
     for i in range(4):

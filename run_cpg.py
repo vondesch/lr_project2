@@ -90,7 +90,11 @@ for j in range(TEST_STEPS):
   # [TODO] get current motor angles and velocities for joint PD, see GetMotorAngles(), GetMotorVelocities() in quadruped.py
   q = env.robot.GetMotorAngles()
   dq = env.robot.GetMotorVelocities()
+<<<<<<< HEAD
   des_joint_vel = np.zeros(3)
+=======
+  des_joint_vel = np.zeros(3) #??????????????????????????????????????????????????????????????
+>>>>>>> main
 
   # loop through desired foot positions and calculate torques
   for i in range(4):
@@ -136,6 +140,7 @@ for j in range(TEST_STEPS):
 # PLOTS
 #####################################################
 # example
+<<<<<<< HEAD
 fig = plt.figure()
 plt.plot(t,foot_pos[0,:])
 plt.plot(t,des_foot_pos[0,:])
@@ -143,3 +148,10 @@ plt.plot(t,des_foot_pos[0,:])
 plt.show()
 
 #cpg, foot xz
+=======
+# fig = plt.figure()
+# plt.plot(t,joint_pos[1,:], label='FR thigh')
+# plt.legend()
+# plt.show()
+
+>>>>>>> main
