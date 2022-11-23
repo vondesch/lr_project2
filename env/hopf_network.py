@@ -153,7 +153,7 @@ class HopfNetwork():
     
     # map CPG variables to Cartesian foot xz positions (Equations 8, 9) 
     x = np.zeros(4) # [TODO]
-    x = -self._des_step_len*self.X[0,:]*np.cos(self.X[1,:])
+    x = -self._des_step_len*self.X[0,:]*np.sin(self.X[1,:])
     z = np.zeros(4) # [TODO]
     # loop through each leg's oscillator
     for i in range(4):
@@ -187,7 +187,7 @@ class HopfNetwork():
       # compute r_dot (Equation 6)
       r_dot = self._alpha*(self._mu-r**2)*r # [TODO]
       # determine whether oscillator i is in swing or stance phase to set natural frequency omega_swing or omega_stance (see Section 3)
-      theta = theta%2*np.pi
+      theta = theta%(2*np.pi)
       if theta >= 0 or theta <= np.pi :
         omega = self._omega_swing
       else:

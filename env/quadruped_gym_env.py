@@ -353,7 +353,7 @@ class QuadrupedGymEnv(gym.Env):
     kdCartesian = self._robot_config.kdCartesian
     # get current motor velocities
     dq = self.robot.GetMotorVelocities()
-    des_joint_vel = np.zeros(3) # ????????????????????????????????????????????????????????
+    des_joint_vel = np.zeros(3)
 
     action = np.zeros(12)
     for i in range(4):
@@ -396,7 +396,11 @@ class QuadrupedGymEnv(gym.Env):
     # get current motor velocities
     q = self.robot.GetMotorAngles()
     dq = self.robot.GetMotorVelocities()
+<<<<<<< HEAD
+    des_joint_vel = np.zeros(3)
+=======
     des_joint_vel = np.zeros(3) # ??????????????????????????????????????????????????'
+>>>>>>> main
 
     action = np.zeros(12)
     # loop through each leg
@@ -523,12 +527,12 @@ class QuadrupedGymEnv(gym.Env):
     except:
       pass
     init_motor_angles = self._robot_config.INIT_MOTOR_ANGLES + self._robot_config.JOINT_OFFSETS
-    if self._is_render:
-      time.sleep(0.2)
+    #if self._is_render:
+      #time.sleep(0.2)
     for _ in range(1000):
       self.robot.ApplyAction(init_motor_angles)
-      if self._is_render:
-        time.sleep(0.001)
+      #if self._is_render:
+        #time.sleep(0.001)
       self._pybullet_client.stepSimulation()
     
     # set control mode back
@@ -590,8 +594,8 @@ class QuadrupedGymEnv(gym.Env):
     self._last_frame_time = time.time()
     # time_to_sleep = self._action_repeat * self._time_step - time_spent
     time_to_sleep = self._time_step - time_spent
-    if time_to_sleep > 0 and (time_to_sleep < self._time_step):
-      time.sleep(time_to_sleep)
+    #if time_to_sleep > 0 and (time_to_sleep < self._time_step):
+      #time.sleep(time_to_sleep)
       
     base_pos = self.robot.GetBasePosition()
     camInfo = self._pybullet_client.getDebugVisualizerCamera()
