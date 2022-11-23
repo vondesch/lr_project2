@@ -77,12 +77,17 @@ kd=np.array([2,2,2])
 # Cartesian PD gains
 kpCartesian = np.diag([500]*3)
 kdCartesian = np.diag([20]*3)
-
+x_des = np.zeros(TEST_STEPS)
+r = np.zeros(TEST_STEPS)
+teta = np.zeros(TEST_STEPS)
 for j in range(TEST_STEPS):
   # initialize torque array to send to motors
   action = np.zeros(12) 
   # get desired foot positions from CPG 
   xs,zs = cpg.update()
+  x_des[j] = xs[0]
+  r = cpg.X[0,0]
+  teta = cpg.X[1,0]
   # [TODO] get current motor angles and velocities for joint PD, see GetMotorAngles(), GetMotorVelocities() in quadruped.py
   q = env.robot.GetMotorAngles()
   dq = env.robot.GetMotorVelocities()
@@ -132,4 +137,9 @@ for j in range(TEST_STEPS):
 # plt.plot(t,joint_pos[1,:], label='FR thigh')
 # plt.legend()
 # plt.show()
+
+fig = plt.figure()
+plt.plot(r)
+plt.plot(teta)
+plt.show()
 
