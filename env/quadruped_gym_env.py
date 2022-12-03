@@ -204,7 +204,7 @@ class QuadrupedGymEnv(gym.Env):
                                          -self._robot_config.VELOCITY_LIMITS,
                                          np.array([-1.0]*4))) -  OBSERVATION_EPS)
     elif self._observation_space_mode == "LR_COURSE_OBS":
-      # [TODO] Set observation upper and lower ranges. What are reasonable limits? 
+      # [TODO] Set observation upper and lower ranges. What are reasonable limits?
       # Note 50 is arbitrary below, you may have more or less
       # if using CPG-RL, remember to include limits on these
 
@@ -312,10 +312,28 @@ class QuadrupedGymEnv(gym.Env):
     return max(reward,0) # keep rewards positive
 
 
-  def _reward_lr_course(self):
+  def _reward_lr_course(self, des_vel_x=0.5):
     """ Implement your reward function here. How will you improve upon the above? """
     # [TODO] add your reward function. 
-    return 0
+    # track the desired velocity 
+    vel_tracking_reward = 0.05 * np.exp( -1/ 0.25 *  (self.robot.GetBaseLinearVelocity()[0] - des_vel_x)**2 )
+    # minimize yaw (go straight)
+    yaw_reward = -0.2 * np.abs(self.robot.GetBaseOrientationRollPitchYaw()[2]) 
+    # don't drift laterally 
+    drift_reward = -0.01 * abs(self.robot.GetBasePosition()[1]) 
+    # minimize energy 
+    energy_reward = 0 
+    for tau,vel in zip(self._dt_motor_torques,self._dt_motor_velocities):
+      energy_reward += np.abs(np.dot(tau,vel)) * self._time_step
+
+    reward = 2*vel_tracking_reward \
+            + 2*yaw_reward \
+            + drift_reward \
+            - 0.01 * energy_reward \
+            - 0.1 * np.linalg.norm(self.robot.GetBaseOrientation() - np.array([0,0,0,1]))
+
+    return max(reward,0) # keep rewards positive
+
 
   def _reward(self):
     """ Get reward depending on task"""
@@ -603,8 +621,8 @@ class QuadrupedGymEnv(gym.Env):
     self._last_frame_time = time.time()
     # time_to_sleep = self._action_repeat * self._time_step - time_spent
     time_to_sleep = self._time_step - time_spent
-    #if time_to_sleep > 0 and (time_to_sleep < self._time_step):
-      #time.sleep(time_to_sleep)
+    if time_to_sleep > 0 and (time_to_sleep < self._time_step):
+      time.sleep(time_to_sleep)
       
     base_pos = self.robot.GetBasePosition()
     camInfo = self._pybullet_client.getDebugVisualizerCamera()

@@ -65,7 +65,8 @@ log_dir = interm_dir + '120322163817'
 env_config = {}
 env_config['render'] = True
 env_config['record_video'] = False
-env_config['add_noise'] = False 
+env_config['add_noise'] = False
+env_config['motor_control_mode'] = 'CPG'
 # env_config['competition_env'] = True
 
 # get latest model and normalization stats, and plot 
