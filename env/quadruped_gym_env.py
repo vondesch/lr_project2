@@ -105,9 +105,9 @@ class QuadrupedGymEnv(gym.Env):
       action_repeat=10,  
       distance_weight=2,
       energy_weight=0.008,
-      motor_control_mode="PD",
+      motor_control_mode="CPG",
       task_env="FWD_LOCOMOTION",
-      observation_space_mode="DEFAULT",
+      observation_space_mode="LR_COURSE_OBS",
       on_rack=False,
       render=False,
       record_video=False,
@@ -197,7 +197,7 @@ class QuadrupedGymEnv(gym.Env):
   def setupObservationSpace(self):
     """Set up observation space for RL. """
     if self._observation_space_mode == "DEFAULT":
-      observation_high = (np.concatenate((self._robot_config.UPPER_ANGLE_JOINT,
+      observation_high = (np.concatenate((self._robot_config.UPPER_ANGLE_JOINT*0.9,
                                          self._robot_config.VELOCITY_LIMITS,
                                          np.array([1.0]*4))) +  OBSERVATION_EPS)
       observation_low = (np.concatenate((self._robot_config.LOWER_ANGLE_JOINT,
@@ -207,8 +207,17 @@ class QuadrupedGymEnv(gym.Env):
       # [TODO] Set observation upper and lower ranges. What are reasonable limits? 
       # Note 50 is arbitrary below, you may have more or less
       # if using CPG-RL, remember to include limits on these
-      observation_high = (np.zeros(50) + OBSERVATION_EPS)
-      observation_low = (np.zeros(50) -  OBSERVATION_EPS)
+
+      observation_high = (np.concatenate((np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
+                                         self._robot_config.VELOCITY_LIMITS,
+                                         np.array([ 2 ] * self._robot_config.NUM_LEGS),
+                                         np.array([ 2*np.pi ] * self._robot_config.NUM_LEGS),
+                                         np.array([1.0]*4))) +  OBSERVATION_EPS)
+      observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), # joint limit
+                                         -self._robot_config.VELOCITY_LIMITS/1.5,
+                                         np.array([ 0, ] * self._robot_config.NUM_LEGS),
+                                         np.array([ 0 ] * self._robot_config.NUM_LEGS),
+                                         np.array([-1.0]*4))) -  OBSERVATION_EPS)
     else:
       raise ValueError("observation space not defined or not intended")
 
@@ -237,7 +246,11 @@ class QuadrupedGymEnv(gym.Env):
       # [TODO] Get observation from robot. What are reasonable measurements we could get on hardware?
       # if using the CPG, you can include states with self._cpg.get_r(), for example
       # 50 is arbitrary
-      self._observation = np.zeros(50)
+      self._observation = np.concatenate((self.robot.GetMotorAngles(), 
+                                          self.robot.GetMotorVelocities(),
+                                          self._cpg.get_r(),
+                                          self._cpg.get_theta(),
+                                          self.robot.GetBaseOrientation() ))
 
     else:
       raise ValueError("observation space not defined or not intended")
@@ -377,7 +390,7 @@ class QuadrupedGymEnv(gym.Env):
     u = np.clip(actions,-1,1)
 
     # scale omega to ranges, and set in CPG (range is an example)
-    omega = self._scale_helper( u[0:4], 5, 4.5*2*np.pi)
+    omega = self._scale_helper( u[0:4], 5, 5*2*np.pi)
     self._cpg.set_omega_rl(omega)
 
     # scale mu to ranges, and set in CPG (squared since we converge to the sqrt in the CPG amplitude)
@@ -410,7 +423,7 @@ class QuadrupedGymEnv(gym.Env):
       leg_q = self.robot.ComputeInverseKinematics(i ,leg_xyz)
       # Add joint PD contribution to tau for leg i (Equation 4)
       # tau += np.zeros(3) # [TODO] 
-      tau = kp*(leg_q-q[i*3:i*3+3]) + kd*(des_joint_vel - dq[i*3:i*3+3])
+      tau = kp[i*3:i*3+3]*(leg_q-q[i*3:i*3+3]) + kd[i*3:i*3+3]*(des_joint_vel - dq[i*3:i*3+3])
 
       # add Cartesian PD contribution (as you wish) ?????????????????????????????????????????
       # tau += self.ScaleActionToCartesianPos(actions)

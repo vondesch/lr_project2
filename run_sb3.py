@@ -60,7 +60,7 @@ if USE_GPU and LEARNING_ALG=="SAC":
     gpu_arg = "auto" 
 else:
     gpu_arg = "cpu"
-
+ 
 if LOAD_NN:
     interm_dir = "./logs/intermediate_models/"
     log_dir = interm_dir + '' # add path
