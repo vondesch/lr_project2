@@ -56,7 +56,7 @@ env = QuadrupedGymEnv(render=True,              # visualize
                     isRLGymInterface=False,     # not using RL
                     time_step=TIME_STEP,
                     action_repeat=1,
-                    motor_control_mode="TORQUE",
+                    motor_control_mode="PD",
                     add_noise=False,    # start in ideal conditions
                     # record_video=True
                     )
