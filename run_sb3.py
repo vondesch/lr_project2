@@ -51,7 +51,7 @@ NUM_ENVS = 1    # how many pybullet environments to create for data collection
 USE_GPU = False # make sure to install all necessary drivers 
 
 # after implementing, you will want to test how well the agent learns with your MDP: 
-env_configs = {"motor_control_mode":"PD",
+env_configs = {"motor_control_mode":"CPG",
                "task_env": "LR_COURSE_TASK",
                "observation_space_mode": "LR_COURSE_OBS"}
 # env_configs = {}
@@ -143,4 +143,3 @@ model.save( os.path.join(SAVE_PATH, "rl_model" ) )
 env.save(os.path.join(SAVE_PATH, "vec_normalize.pkl" )) 
 if LEARNING_ALG == "SAC": # save replay buffer 
     model.save_replay_buffer(os.path.join(SAVE_PATH,"off_policy_replay_buffer"))
-

@@ -208,7 +208,7 @@ class QuadrupedGymEnv(gym.Env):
       # Note 50 is arbitrary below, you may have more or less
       # if using CPG-RL, remember to include limits on these
 
-      observation_high = (np.concatenate((np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
+      observation_high = (np.concatenate((np.array([ 0.261799,  1.39, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
                                          self._robot_config.VELOCITY_LIMITS,
                                          np.array([ 2 ] * self._robot_config.NUM_LEGS),
                                          np.array([ 2*np.pi ] * self._robot_config.NUM_LEGS),
@@ -296,7 +296,7 @@ class QuadrupedGymEnv(gym.Env):
     vel_tracking_reward = 0.05 * np.exp( -1/ 0.25 *  (self.robot.GetBaseLinearVelocity()[0] - des_vel_x)**2 )
     # minimize yaw (go straight)
     yaw_reward = -0.2 * np.abs(self.robot.GetBaseOrientationRollPitchYaw()[2]) 
-    # don't drift laterally 
+    # don't drift laterally
     drift_reward = -0.01 * abs(self.robot.GetBasePosition()[1]) 
     # minimize energy 
     energy_reward = 0 
