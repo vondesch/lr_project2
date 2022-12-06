@@ -56,9 +56,10 @@ from utils.file_utils import get_latest_model, load_all_results
 
 
 LEARNING_ALG = "PPO"
-interm_dir = "./logs/intermediate_models/"
+FILE_PATH = os.path.dirname(os.path.abspath(__file__))
+interm_dir = FILE_PATH + "/logs/intermediate_models/"
 # path to saved models, i.e. interm_dir + '121321105810'
-log_dir = interm_dir + '1'
+log_dir = interm_dir + '120422211851'
 
 # initialize env configs (render at test time)
 # check ideal conditions, as well as robustness to UNSEEN noise during training
