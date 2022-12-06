@@ -263,12 +263,12 @@ class QuadrupedGymEnv(gym.Env):
                                             self.robot.GetMotorVelocities(),
                                             self._cpg.get_r(),
                                             self._cpg.get_theta(),
-                                            np.array([self.robot.GetContactInfo()[3]]),
+                                            self.robot.GetContactInfo()[3],
                                             self.robot.GetBaseOrientation() ))
       else:
         self._observation = np.concatenate((self.robot.GetMotorAngles(), 
                                             self.robot.GetMotorVelocities(),
-                                            np.array([self.robot.GetContactInfo()[3]]),
+                                            self.robot.GetContactInfo()[3],
                                             self.robot.GetBaseOrientation() ))
 
     else:
