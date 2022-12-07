@@ -55,28 +55,28 @@ from utils.utils import plot_results
 from utils.file_utils import get_latest_model, load_all_results
 
 
-LEARNING_ALG = "PPO"
+LEARNING_ALG = "SAC"
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 interm_dir = FILE_PATH + "/logs/intermediate_models/"
 # path to saved models, i.e. interm_dir + '121321105810'
-log_dir = interm_dir + '120422191610'
+log_dir = interm_dir + '120622231844'
 
 # initialize env configs (render at test time)
 # check ideal conditions, as well as robustness to UNSEEN noise during training
 env_config = {}
-env_config['render'] = True
+env_config['render'] = False
 env_config['record_video'] = False
 env_config['add_noise'] = False
 env_config['motor_control_mode'] = 'CPG'
-# env_config['competition_env'] = True
+#env_config['competition_env'] = True
 
 # get latest model and normalization stats, and plot 
 stats_path = os.path.join(log_dir, "vec_normalize.pkl")
 model_name = get_latest_model(log_dir)
 monitor_results = load_results(log_dir)
 print(monitor_results)
-plot_results([log_dir] , 10e10, 'timesteps', LEARNING_ALG + ' ')
-plt.show() 
+#plot_results([log_dir] , 10e10, 'timesteps', LEARNING_ALG + ' ')
+#plt.show() 
 
 # reconstruct env 
 env = lambda: QuadrupedGymEnv(**env_config)
@@ -96,19 +96,41 @@ obs = env.reset()
 episode_reward = 0
 
 # [TODO] initialize arrays to save data from simulation 
-#
+NUM_STEPS = 1000
+TIME_STEP = 0.001
+t = np.arange(NUM_STEPS)*TIME_STEP
 
-for i in range(2000):
-    action, _states = model.predict(obs,deterministic=False) # sample at test time? ([TODO]: test)
+# initialize matrices for the plots
+XYZ_base = np.zeros((3,NUM_STEPS))
+torques = np.zeros((12, NUM_STEPS))
+foot_pos = np.zeros((12, NUM_STEPS))
+CPG_r = np.zeros((4,NUM_STEPS))
+CPG_theta = np.zeros((4,NUM_STEPS))
+
+for i in range(NUM_STEPS):
+    action, _states = model.predict(obs, deterministic=False) # sample at test time? ([TODO]: test)
     obs, rewards, dones, info = env.step(action)
     episode_reward += rewards
     if dones:
         print('episode_reward', episode_reward)
         print('Final base position', info[0]['base_pos'])
         episode_reward = 0
+        break
 
     # [TODO] save data from current robot states for plots 
-    # To get base position, for example: env.envs[0].env.robot.GetBasePosition() 
-    #
+    # To get base position, for example: env.envs[0].env.robot.GetBasePosition()
+    # fill the matrices for the plots
+    XYZ_base[:,i] = env.envs[0].robot.GetBasePosition()
+    torques[:,i] = env.envs[0].robot.GetMotorTorques()
+    foot_pos[0:3,i] = env.envs[0].robot.ComputeJacobianAndPosition(0)[1]
+    foot_pos[3:6,i] = env.envs[0].robot.ComputeJacobianAndPosition(1)[1]
+    foot_pos[6:9,i] = env.envs[0].robot.ComputeJacobianAndPosition(2)[1]
+    foot_pos[9:12,i] = env.envs[0].robot.ComputeJacobianAndPosition(3)[1]
+    CPG_r[:,i] = env.envs[0].get_cpg_r()
+    CPG_theta[:,i] = env.envs[0].get_cpg_theta()
+    
     
 # [TODO] make plots:
+fig = plt.figure()
+plt.plot(t, CPG_theta[0,:])
+plt.show()
