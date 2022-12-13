@@ -253,7 +253,7 @@ class QuadrupedGymEnv(gym.Env):
                                           np.array([-0.15,-0.2,-0.3]),
                                           np.array([-1.0]*4))) -  OBSERVATION_EPS)
 
-      else:
+      else: # TORQUE
         observation_high = (np.concatenate((np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
                                           self._robot_config.VELOCITY_LIMITS, # limit on velocity
                                           np.array([1]* self._robot_config.NUM_LEGS), # limit on nb leg tuching the floor
@@ -391,7 +391,7 @@ class QuadrupedGymEnv(gym.Env):
     yaw_reward = -0.2 * np.abs(self.robot.GetBaseOrientationRollPitchYaw()[2]) 
     # don't drift laterally 
     drift_reward = -0.01 * abs(self.robot.GetBasePosition()[1])
-    # minimize energy 
+    # minimize energy
     energy_reward = 0 
     for tau,vel in zip(self._dt_motor_torques,self._dt_motor_velocities):
       energy_reward += np.abs(np.dot(tau,vel)) * self._time_step
