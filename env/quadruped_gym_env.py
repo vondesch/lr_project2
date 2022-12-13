@@ -299,6 +299,7 @@ class QuadrupedGymEnv(gym.Env):
                                             self._cpg.get_r(),
                                             self._cpg.get_theta(), # dr dtheta
                                             self.robot.GetContactInfo()[3],
+                                            self.robot.GetBaseOrientationRollPitchYaw(),
                                             self.robot.GetBaseOrientation() ))
       elif self._motor_control_mode == "PD":
         self._observation = np.concatenate((self.robot.GetMotorAngles(),
@@ -498,6 +499,9 @@ class QuadrupedGymEnv(gym.Env):
     q = self.robot.GetMotorAngles()
     dq = self.robot.GetMotorVelocities()
     des_joint_vel = np.zeros(3)
+    kpCartesian = self._robot_config.kpCartesian
+    kdCartesian = self._robot_config.kdCartesian
+    
 
     action = np.zeros(12)
     # loop through each leg
@@ -513,9 +517,19 @@ class QuadrupedGymEnv(gym.Env):
       # tau += np.zeros(3) # [TODO] 
       tau = kp[i*3:i*3+3]*(leg_q-q[i*3:i*3+3]) + kd[i*3:i*3+3]*(des_joint_vel - dq[i*3:i*3+3])
 
-      # add Cartesian PD contribution (as you wish) ?????????????????????????????????????????
-      # tau += self.ScaleActionToCartesianPos(actions)
-
+      # add Cartesian PD contribution (as you wish) ?????????????????????????????????????????!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      
+    
+      # Get current Jacobian and foot position in leg frame (see ComputeJacobianAndPosition() in quadruped.py)
+      # [TODO] 
+      J, p = self.robot.ComputeJacobianAndPosition(i)
+      # Get current foot velocity in leg frame (Equation 2)
+      # [TODO] 
+      v = J @ dq[i*3:i*3+3]
+      des_v = J @ des_joint_vel
+      # Calculate torque contribution from Cartesian PD (Equation 5) [Make sure you are using matrix multiplications]
+      # tau += np.zeros(3) # [TODO]
+      tau += np.transpose(J) @ (kpCartesian@(leg_xyz-p) + kdCartesian@(des_v - v))
       action[3*i:3*i+3] = tau
 
     return action
