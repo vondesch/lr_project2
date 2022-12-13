@@ -518,8 +518,6 @@ class QuadrupedGymEnv(gym.Env):
       tau = kp[i*3:i*3+3]*(leg_q-q[i*3:i*3+3]) + kd[i*3:i*3+3]*(des_joint_vel - dq[i*3:i*3+3])
 
       # add Cartesian PD contribution (as you wish) ?????????????????????????????????????????!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      
-    
       # Get current Jacobian and foot position in leg frame (see ComputeJacobianAndPosition() in quadruped.py)
       # [TODO] 
       J, p = self.robot.ComputeJacobianAndPosition(i)
