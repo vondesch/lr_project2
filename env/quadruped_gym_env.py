@@ -383,7 +383,7 @@ class QuadrupedGymEnv(gym.Env):
     return max(reward,0) # keep rewards positive
 
 
-  def _reward_lr_course(self, des_vel_x=0.8):
+  def _reward_lr_course(self, des_vel_x=-0.3):
     """ Implement your reward function here. How will you improve upon the above? """
     # [TODO] add your reward function. 
     # track the desired velocity 
@@ -518,8 +518,6 @@ class QuadrupedGymEnv(gym.Env):
       tau = kp[i*3:i*3+3]*(leg_q-q[i*3:i*3+3]) + kd[i*3:i*3+3]*(des_joint_vel - dq[i*3:i*3+3])
 
       # add Cartesian PD contribution (as you wish) ?????????????????????????????????????????!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      
-    
       # Get current Jacobian and foot position in leg frame (see ComputeJacobianAndPosition() in quadruped.py)
       # [TODO] 
       J, p = self.robot.ComputeJacobianAndPosition(i)
