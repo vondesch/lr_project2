@@ -190,6 +190,12 @@ class QuadrupedGymEnv(gym.Env):
  
   def setupCPG(self):
     self._cpg = HopfNetwork(use_RL=True)
+  
+  def get_cpg_r(self):
+    return self._cpg.get_r()
+
+  def get_cpg_theta(self):
+    return self._cpg.get_theta()
 
   ######################################################################################
   # RL Observation and Action spaces 
@@ -208,7 +214,6 @@ class QuadrupedGymEnv(gym.Env):
       # Note 50 is arbitrary below, you may have more or less
       # if using CPG-RL, remember to include limits on these
       if self._motor_control_mode == "CPG":
-
         observation_high = (np.concatenate((np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
                                           self._robot_config.VELOCITY_LIMITS, # limit on velocity
                                           np.array([ 2 ] * self._robot_config.NUM_LEGS), # limit on r (CPG)
@@ -223,7 +228,20 @@ class QuadrupedGymEnv(gym.Env):
                                           np.array([2]* self._robot_config.NUM_LEGS),
                                           np.array([-0.15,-0.2,-0.3]),
                                           np.array([-1.0]*4))) -  OBSERVATION_EPS)
-      else :
+
+      elif self._motor_control_mode == "PD":
+        observation_high = (np.concatenate((np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
+                                          self._robot_config.VELOCITY_LIMITS, # limit on velocity
+                                          np.array([1]* self._robot_config.NUM_LEGS), # limit on nb leg touching the floor
+                                          np.array([0.15,0.2,0.3]),
+                                          np.array([1.0]*4))) +  OBSERVATION_EPS) # limit on orientation
+        observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), # joint limit
+                                          -self._robot_config.VELOCITY_LIMITS,
+                                          np.array([2]* self._robot_config.NUM_LEGS),
+                                          np.array([-0.15,-0.2,-0.3]),
+                                          np.array([-1.0]*4))) -  OBSERVATION_EPS)
+
+      elif self._motor_control_mode == "CARTESIAN_PD":
         observation_high = (np.concatenate((np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
                                           self._robot_config.VELOCITY_LIMITS, # limit on velocity
                                           np.array([1]* self._robot_config.NUM_LEGS), # limit on nb leg tuching the floor
@@ -233,7 +251,20 @@ class QuadrupedGymEnv(gym.Env):
                                           -self._robot_config.VELOCITY_LIMITS,
                                           np.array([2]* self._robot_config.NUM_LEGS),
                                           np.array([-0.15,-0.2,-0.3]),
-                                          np.array([-1.0]*4))) -  OBSERVATION_EPS)                              
+                                          np.array([-1.0]*4))) -  OBSERVATION_EPS)
+
+      else:
+        observation_high = (np.concatenate((np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
+                                          self._robot_config.VELOCITY_LIMITS, # limit on velocity
+                                          np.array([1]* self._robot_config.NUM_LEGS), # limit on nb leg tuching the floor
+                                          np.array([0.15,0.2,0.3]),
+                                          np.array([1.0]*4))) +  OBSERVATION_EPS) # limit on orientation
+        observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), # joint limit
+                                          -self._robot_config.VELOCITY_LIMITS,
+                                          np.array([2]* self._robot_config.NUM_LEGS),
+                                          np.array([-0.15,-0.2,-0.3]),
+                                          np.array([-1.0]*4))) -  OBSERVATION_EPS) 
+    
     else:
       raise ValueError("observation space not defined or not intended")
 
@@ -268,14 +299,28 @@ class QuadrupedGymEnv(gym.Env):
                                             self._cpg.get_r(),
                                             self._cpg.get_theta(), # dr dtheta
                                             self.robot.GetContactInfo()[3],
+                                            self.robot.GetBaseOrientation() ))
+      elif self._motor_control_mode == "PD":
+        self._observation = np.concatenate((self.robot.GetMotorAngles(),
+                                            self.robot.GetMotorVelocities(),
+                                            self.robot.GetContactInfo()[3],
                                             self.robot.GetBaseOrientationRollPitchYaw(),
-                                            self.robot.GetBaseOrientation() ))# roll pitch yaw
+                                            self.robot.GetBaseOrientation() ))
+
+      elif self._motor_control_mode == "CARTESIAN_PD":
+        self._observation = np.concatenate((self.robot.GetMotorAngles(), 
+                                            self.robot.GetMotorVelocities(),
+                                            self.robot.GetContactInfo()[3],
+                                            self.robot.GetBaseOrientationRollPitchYaw(),
+                                            self.robot.GetBaseOrientation() ))
+
       else:
         self._observation = np.concatenate((self.robot.GetMotorAngles(), 
                                             self.robot.GetMotorVelocities(),
                                             self.robot.GetContactInfo()[3],
                                             self.robot.GetBaseOrientationRollPitchYaw(),
                                             self.robot.GetBaseOrientation() ))
+                                            
 
     else:
       raise ValueError("observation space not defined or not intended")
@@ -377,8 +422,8 @@ class QuadrupedGymEnv(gym.Env):
     # clip actions to action bounds
     action = np.clip(action, -self._action_bound - ACTION_EPS,self._action_bound + ACTION_EPS)
     if self._motor_control_mode == "PD":
-      action = self._scale_helper(np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS))
-      action = np.clip(np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS))
+      action = self._scale_helper(action, np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS))
+      action = np.clip(action, np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS))
     elif self._motor_control_mode == "CARTESIAN_PD":
       action = self.ScaleActionToCartesianPos(action)
     elif self._motor_control_mode == "CPG":
