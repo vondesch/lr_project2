@@ -1,3 +1,5 @@
 .DS_Store
 *.egg-info
 __pycache__/
+logs/intermediate_models/*/rl_model_?????_steps.zip
+logs/intermediate_models/*/rl_model_??????_steps.zip
