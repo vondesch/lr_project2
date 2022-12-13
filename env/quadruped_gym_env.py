@@ -383,7 +383,7 @@ class QuadrupedGymEnv(gym.Env):
     return max(reward,0) # keep rewards positive
 
 
-  def _reward_lr_course(self, des_vel_x=0.8):
+  def _reward_lr_course(self, des_vel_x=-0.3):
     """ Implement your reward function here. How will you improve upon the above? """
     # [TODO] add your reward function. 
     # track the desired velocity 
