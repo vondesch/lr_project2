@@ -214,21 +214,25 @@ class QuadrupedGymEnv(gym.Env):
                                           np.array([ 2 ] * self._robot_config.NUM_LEGS), # limit on r (CPG)
                                           np.array([ 2*np.pi ] * self._robot_config.NUM_LEGS), # limit on theta (CPG)
                                           np.array([1]* self._robot_config.NUM_LEGS), # limit on nb leg tuching the floor
+                                          np.array([0.15,0.2,0.3]),
                                           np.array([1.0]*4))) +  OBSERVATION_EPS) # limit on orientation
         observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), # joint limit
                                           -self._robot_config.VELOCITY_LIMITS,
                                           np.array([ 0 ] * self._robot_config.NUM_LEGS),
                                           np.array([ 0 ] * self._robot_config.NUM_LEGS),
                                           np.array([2]* self._robot_config.NUM_LEGS),
+                                          np.array([-0.15,-0.2,-0.3]),
                                           np.array([-1.0]*4))) -  OBSERVATION_EPS)
       else :
         observation_high = (np.concatenate((np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
                                           self._robot_config.VELOCITY_LIMITS, # limit on velocity
                                           np.array([1]* self._robot_config.NUM_LEGS), # limit on nb leg tuching the floor
+                                          np.array([0.15,0.2,0.3]),
                                           np.array([1.0]*4))) +  OBSERVATION_EPS) # limit on orientation
         observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), # joint limit
                                           -self._robot_config.VELOCITY_LIMITS,
                                           np.array([2]* self._robot_config.NUM_LEGS),
+                                          np.array([-0.15,-0.2,-0.3]),
                                           np.array([-1.0]*4))) -  OBSERVATION_EPS)                              
     else:
       raise ValueError("observation space not defined or not intended")
@@ -262,13 +266,15 @@ class QuadrupedGymEnv(gym.Env):
         self._observation = np.concatenate((self.robot.GetMotorAngles(), 
                                             self.robot.GetMotorVelocities(),
                                             self._cpg.get_r(),
-                                            self._cpg.get_theta(),
+                                            self._cpg.get_theta(), # dr dtheta
                                             self.robot.GetContactInfo()[3],
-                                            self.robot.GetBaseOrientation() ))
+                                            self.robot.GetBaseOrientationRollPitchYaw(),
+                                            self.robot.GetBaseOrientation() ))# roll pitch yaw
       else:
         self._observation = np.concatenate((self.robot.GetMotorAngles(), 
                                             self.robot.GetMotorVelocities(),
                                             self.robot.GetContactInfo()[3],
+                                            self.robot.GetBaseOrientationRollPitchYaw(),
                                             self.robot.GetBaseOrientation() ))
 
     else:
