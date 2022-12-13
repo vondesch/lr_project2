@@ -104,8 +104,9 @@ t = np.arange(NUM_STEPS)*TIME_STEP
 XYZ_base = np.zeros((3,NUM_STEPS))
 torques = np.zeros((12, NUM_STEPS))
 foot_pos = np.zeros((12, NUM_STEPS))
-CPG_r = np.zeros((4,NUM_STEPS))
-CPG_theta = np.zeros((4,NUM_STEPS))
+CPG_r = np.zeros((4, NUM_STEPS))
+CPG_theta = np.zeros((4, NUM_STEPS))
+RollPitchYaw = np.zeros((3, NUM_STEPS))
 
 for i in range(NUM_STEPS):
     action, _states = model.predict(obs, deterministic=False) # sample at test time? ([TODO]: test)
@@ -117,8 +118,7 @@ for i in range(NUM_STEPS):
         episode_reward = 0
         break
 
-    # [TODO] save data from current robot states for plots 
-    # To get base position, for example: env.envs[0].env.robot.GetBasePosition()
+    # [TODO] save data from current robot states for plots
     # fill the matrices for the plots
     XYZ_base[:,i] = env.envs[0].robot.GetBasePosition()
     torques[:,i] = env.envs[0].robot.GetMotorTorques()
@@ -128,9 +128,10 @@ for i in range(NUM_STEPS):
     foot_pos[9:12,i] = env.envs[0].robot.ComputeJacobianAndPosition(3)[1]
     CPG_r[:,i] = env.envs[0].get_cpg_r()
     CPG_theta[:,i] = env.envs[0].get_cpg_theta()
+    RollPitchYaw[:,i] = env.envs[0].robot.GetBaseOrientationRollPitchYaw()
     
     
 # [TODO] make plots:
 fig = plt.figure()
-plt.plot(t, CPG_theta[0,:])
+plt.plot(t, RollPitchYaw[0,:])
 plt.show()
