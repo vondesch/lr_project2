@@ -59,7 +59,7 @@ LEARNING_ALG = "SAC"
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 interm_dir = FILE_PATH + "/logs/intermediate_models/"
 # path to saved models, i.e. interm_dir + '121321105810'
-log_dir = interm_dir + '121322141332'
+log_dir = interm_dir + '121322171540'
 
 # initialize env configs (render at test time)
 # check ideal conditions, as well as robustness to UNSEEN noise during training
@@ -75,8 +75,8 @@ stats_path = os.path.join(log_dir, "vec_normalize.pkl")
 model_name = get_latest_model(log_dir)
 monitor_results = load_results(log_dir)
 print(monitor_results)
-#plot_results([log_dir] , 10e10, 'timesteps', LEARNING_ALG + ' ')
-#plt.show() 
+plot_results([log_dir] , 10e10, 'timesteps', LEARNING_ALG + ' ')
+plt.show() 
 
 # reconstruct env 
 env = lambda: QuadrupedGymEnv(**env_config)
