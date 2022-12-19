@@ -45,10 +45,11 @@ from utils.file_utils import get_latest_model
 from env.quadruped_gym_env import QuadrupedGymEnv
 
 
-LEARNING_ALG = "SAC" # or "SAC" or "PPO"
+LEARNING_ALG = "PPO" # or "SAC" or "PPO"
 LOAD_NN = False # if you want to initialize training with a previous model 
 NUM_ENVS = 1    # how many pybullet environments to create for data collection
 USE_GPU = False # make sure to install all necessary drivers 
+move_reverse = True
 
 # after implementing, you will want to test how well the agent learns with your MDP: 
 env_configs = {"motor_control_mode":"CPG",
@@ -74,7 +75,8 @@ os.makedirs(SAVE_PATH, exist_ok=True)
 # checkpoint to save policy network periodically
 checkpoint_callback = CheckpointCallback(save_freq=30000, save_path=SAVE_PATH,name_prefix='rl_model', verbose=2)
 # create Vectorized gym environment
-env = lambda: QuadrupedGymEnv(**env_configs)  
+env = lambda: QuadrupedGymEnv(**env_configs)
+env.move_reverse = move_reverse
 env = make_vec_env(env, monitor_dir=SAVE_PATH,n_envs=NUM_ENVS)
 # normalize observations to stabilize learning (why?)
 env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=100.)

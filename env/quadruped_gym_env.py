@@ -113,6 +113,7 @@ class QuadrupedGymEnv(gym.Env):
       record_video=False,
       add_noise=True,
       test_env=False,
+      move_reverse=False,
       competition_env=False, # NOT ALLOWED FOR TRAINING!
       **kwargs): # any extra arguments from legacy
     """Initialize the quadruped gym environment.
@@ -163,6 +164,7 @@ class QuadrupedGymEnv(gym.Env):
       self._observation_noise_stdev = 0.01 #
     else:
       self._observation_noise_stdev = 0.0
+    self.move_reverse = move_reverse
 
     # other bookkeeping 
     self._num_bullet_solver_iterations = int(300 / action_repeat) 
@@ -189,8 +191,8 @@ class QuadrupedGymEnv(gym.Env):
     self.reset()
  
   def setupCPG(self):
-    self._cpg = HopfNetwork(use_RL=True)
-  
+    self._cpg = HopfNetwork(use_RL=True, move_reverse=self.move_reverse)
+
   def get_cpg_r(self):
     return self._cpg.get_r()
 
@@ -253,7 +255,7 @@ class QuadrupedGymEnv(gym.Env):
                                           np.array([-0.15,-0.2,-0.3]),
                                           np.array([-1.0]*4))) -  OBSERVATION_EPS)
 
-      else: # TORQUE
+      elif self._motor_control_mode == "TORQUE":
         observation_high = (np.concatenate((np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
                                           self._robot_config.VELOCITY_LIMITS, # limit on velocity
                                           np.array([1]* self._robot_config.NUM_LEGS), # limit on nb leg tuching the floor
@@ -263,8 +265,21 @@ class QuadrupedGymEnv(gym.Env):
                                           -self._robot_config.VELOCITY_LIMITS,
                                           np.array([2]* self._robot_config.NUM_LEGS),
                                           np.array([-0.15,-0.2,-0.3]),
-                                          np.array([-1.0]*4))) -  OBSERVATION_EPS) 
-    
+                                          np.array([-1.0]*4))) -  OBSERVATION_EPS)
+
+      elif self._motor_control_mode in ["OLD_CPG", "OLD_CARTESIAN_PD", "OLD_PD", "OLD_TORQUE"]:
+        observation_high = (np.concatenate((np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
+                                         self._robot_config.VELOCITY_LIMITS, # velocity limit
+                                         np.array([ 2 ] * self._robot_config.NUM_LEGS),  # limit on r (CPG)
+                                         np.array([ 2*np.pi ] * self._robot_config.NUM_LEGS),  # limit on theta (CPG)
+                                         np.array([1.0]*4))) +  OBSERVATION_EPS) # limit on base orientation
+        observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), # joint limit
+                                         -self._robot_config.VELOCITY_LIMITS/1.5,
+                                         np.array([ 0, ] * self._robot_config.NUM_LEGS),
+                                         np.array([ 0 ] * self._robot_config.NUM_LEGS),
+                                         np.array([-1.0]*4))) -  OBSERVATION_EPS)
+      else:
+        raise ValueError("Motor control mode does not exist")    
     else:
       raise ValueError("observation space not defined or not intended")
 
@@ -272,9 +287,9 @@ class QuadrupedGymEnv(gym.Env):
 
   def setupActionSpace(self):
     """ Set up action space for RL. """
-    if self._motor_control_mode in ["PD","TORQUE", "CARTESIAN_PD"]:
+    if self._motor_control_mode in ["PD","TORQUE", "CARTESIAN_PD", "OLD_PD", "OLD_CARTESIAN_PD", "OLD_TORQUE"]:
       action_dim = 12
-    elif self._motor_control_mode in ["CPG"]:
+    elif self._motor_control_mode in ["CPG", "OLD_CPG"]:
       action_dim = 8
     else:
       raise ValueError("motor control mode " + self._motor_control_mode + " not implemented yet.")
@@ -315,14 +330,21 @@ class QuadrupedGymEnv(gym.Env):
                                             self.robot.GetBaseOrientationRollPitchYaw(),
                                             self.robot.GetBaseOrientation() ))
 
-      else:
+      elif self._motor_control_mode == "TORQUE":
         self._observation = np.concatenate((self.robot.GetMotorAngles(), 
                                             self.robot.GetMotorVelocities(),
                                             self.robot.GetContactInfo()[3],
                                             self.robot.GetBaseOrientationRollPitchYaw(),
                                             self.robot.GetBaseOrientation() ))
-                                            
 
+      elif self._motor_control_mode in ["OLD_CPG", "OLD_CARTESIAN_PD", "OLD_PD", "OLD_TORQUE"]:
+        self._observation = np.concatenate((self.robot.GetMotorAngles(), 
+                                            self.robot.GetMotorVelocities(),
+                                            self._cpg.get_r(),
+                                            self._cpg.get_theta(),
+                                            self.robot.GetBaseOrientation() ))
+      else:
+        raise ValueError("Motor control mode is wrong")
     else:
       raise ValueError("observation space not defined or not intended")
 
@@ -397,8 +419,8 @@ class QuadrupedGymEnv(gym.Env):
     for tau,vel in zip(self._dt_motor_torques,self._dt_motor_velocities):
       energy_reward += np.abs(np.dot(tau,vel)) * self._time_step
 
-    reward = 2*vel_tracking_reward \
-            + 2*yaw_reward \
+    reward = 10*vel_tracking_reward \
+            + yaw_reward \
             + drift_reward \
             - 0.01 * energy_reward \
             - 0.1 * np.linalg.norm(self.robot.GetBaseOrientation() - np.array([0,0,0,1]))
@@ -422,12 +444,12 @@ class QuadrupedGymEnv(gym.Env):
     """ Map actions from RL (i.e. in [-1,1]) to joint commands based on motor_control_mode. """
     # clip actions to action bounds
     action = np.clip(action, -self._action_bound - ACTION_EPS,self._action_bound + ACTION_EPS)
-    if self._motor_control_mode == "PD":
+    if self._motor_control_mode in ["PD", "OLD_PD"]:
       action = self._scale_helper(action, np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS))
       action = np.clip(action, np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS))
-    elif self._motor_control_mode == "CARTESIAN_PD":
+    elif self._motor_control_mode in ["CARTESIAN_PD", "OLD_CARTESIAN_PD"]:
       action = self.ScaleActionToCartesianPos(action)
-    elif self._motor_control_mode == "CPG":
+    elif self._motor_control_mode in ["CPG", "OLD_CPG"]:
       action = self.ScaleActionToCPGStateModulations(action)
     else:
       raise ValueError("RL motor control mode" + self._motor_control_mode + "not implemented yet.")
@@ -468,7 +490,7 @@ class QuadrupedGymEnv(gym.Env):
       des_v = J @ des_joint_vel
       # Calculate torque contribution from Cartesian PD (Equation 5) [Make sure you are using matrix multiplications]
       # tau += np.zeros(3) # [TODO]
-      tau += np.transpose(J) @ (kpCartesian@(des_foot_pos-p) + kdCartesian@(des_v - v))
+      tau += np.transpose(J) @ (kpCartesian@(des_foot_pos - p) + kdCartesian@(des_v - v))
       action[3*i:3*i+3] = tau
 
     return action

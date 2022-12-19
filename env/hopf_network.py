@@ -51,7 +51,7 @@ class HopfNetwork():
                 mu=1**2,                 # intrinsic amplitude, converges to sqrt(mu)
                 omega_swing=5*2*np.pi,   # frequency in swing phase (can edit)
                 omega_stance=2*2*np.pi,  # frequency in stance phase (can edit)
-                gait="TROT",             # Gait, can be TROT, WALK, PACE, BOUND, etc.
+                gait="WALK",             # Gait, can be TROT, WALK, PACE, BOUND, etc.
                 alpha=50,                # amplitude convergence factor
                 coupling_strength=1,     # coefficient to multiply coupling matrix
                 couple=True,             # whether oscillators should be coupled
@@ -61,7 +61,8 @@ class HopfNetwork():
                 robot_height=0.3,        # in nominal case (standing) 
                 des_step_len=0.05,       # desired step length 
                 max_step_len_rl=0.1,     # max step length, for RL scaling 
-                use_RL=False             # whether to learn parameters with RL 
+                use_RL=False,            # whether to learn parameters with RL
+                move_reverse=False
                 ):
     
     ###############
@@ -91,6 +92,7 @@ class HopfNetwork():
 
     # for RL
     self.use_RL = use_RL
+    self.move_reverse = move_reverse
     self._omega_rl = np.zeros(4)
     self._mu_rl = np.zeros(4) 
     self._max_step_len_rl = max_step_len_rl
@@ -153,14 +155,20 @@ class HopfNetwork():
     
     # map CPG variables to Cartesian foot xz positions (Equations 8, 9) 
     x = np.zeros(4) # [TODO]
-    x = -self._des_step_len*self.X[0,:]*np.cos(self.X[1,:])
+    x = self._des_step_len*self.X[0,:]*np.cos(self.X[1,:])
     z = np.zeros(4) # [TODO]
     # loop through each leg's oscillator
     for i in range(4):
       if np.sin(self.X[1,i])>0:
-        z[i] = -self._robot_height + self._ground_clearance*np.sin(self.X[1,i])
+        if not self.move_reverse:
+          z[i] = -self._robot_height + self._ground_clearance*np.sin(self.X[1,i])
+        else:
+          z[i] = -self._robot_height + self._ground_clearance*np.sin(self.X[1,i])
       else:
-        z[i] = -self._robot_height + self._ground_penetration*np.sin(self.X[1,i])
+        if not self.move_reverse:
+          z[i] = -self._robot_height + self._ground_penetration*np.sin(self.X[1,i])
+        else:
+          z[i] = -self._robot_height + self._ground_penetration*np.sin(self.X[1,i])
 
     # scale x by step length
     if not self.use_RL:
@@ -248,11 +256,14 @@ class HopfNetwork():
       # amplitude (use mu from RL, i.e. self._mu_rl[i])
       r_dot = self._alpha*(self._mu_rl[i]-r**2)*r # [TODO]
       # phase (use omega from RL, i.e. self._omega_rl[i])
-      theta_dot = self._omega_rl[i] + np.sum(X[0,:]*self.w[i,:]*np.sin(X[1,:]-theta-self.PHI[i,:]))  # [TODO]
+      if not self.move_reverse:
+        theta_dot = self._omega_rl[i] + np.sum(X[0,:]*self.w[i,:]*np.sin(X[1,:]-theta-self.PHI[i,:]))  # [TODO]
+      else:
+        theta_dot = self._omega_rl[i] + np.sum(X[0,:]*self.w[i,:]*np.sin(X[1,:]-theta-self.PHI[i,:]))  # [TODO]
 
       X_dot[:,i] = [r_dot, theta_dot]
 
-    # integrate 
+    # integrate
     self.X = X + (X_dot_prev + X_dot) * self._dt / 2
     self.X_dot = X_dot
     self.X[1,:] = self.X[1,:] % (2*np.pi)

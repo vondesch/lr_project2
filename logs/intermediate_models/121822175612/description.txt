@@ -1,0 +1,26 @@
+gait mode WALK
+learning alg PPO
+motor control mode CPG
+desired velocity -0.3
+move_reverse = True
+
+observation_high = (np.concatenate((np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
+                                          self._robot_config.VELOCITY_LIMITS, # limit on velocity
+                                          np.array([ 2 ] * self._robot_config.NUM_LEGS), # limit on r (CPG)
+                                          np.array([ 2*np.pi ] * self._robot_config.NUM_LEGS), # limit on theta (CPG)
+                                          np.array([1]* self._robot_config.NUM_LEGS), # limit on nb leg tuching the floor
+                                          np.array([0.15,0.2,0.3]),
+                                          np.array([1.0]*4))) +  OBSERVATION_EPS) # limit on orientation
+observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), # joint limit
+                                          -self._robot_config.VELOCITY_LIMITS,
+                                          np.array([ 0 ] * self._robot_config.NUM_LEGS),
+                                          np.array([ 0 ] * self._robot_config.NUM_LEGS),
+                                          np.array([2]* self._robot_config.NUM_LEGS),
+                                          np.array([-0.15,-0.2,-0.3]),
+                                          np.array([-1.0]*4))) -  OBSERVATION_EPS)
+
+reward = 10*vel_tracking_reward \
+            + yaw_reward \
+            + drift_reward \
+            - 0.01 * energy_reward \
+            - 0.1 * np.linalg.norm(self.robot.GetBaseOrientation() - np.array([0,0,0,1]))
