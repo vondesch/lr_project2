@@ -56,13 +56,14 @@ env = QuadrupedGymEnv(render=True,              # visualize
                     isRLGymInterface=False,     # not using RL
                     time_step=TIME_STEP,
                     action_repeat=1,
-                    motor_control_mode="PD",
+                    motor_control_mode="CPG",
                     add_noise=False,    # start in ideal conditions
+                    move_reverse=False
                     # record_video=True
                     )
 
 # initialize Hopf Network, supply gait
-cpg = HopfNetwork(time_step=TIME_STEP)
+cpg = HopfNetwork(time_step=TIME_STEP, omega_swing=3*2*np.pi, omega_stance=1.5*2*np.pi)
 
 TEST_STEPS = int(10 / (TIME_STEP))
 t = np.arange(TEST_STEPS)*TIME_STEP

@@ -246,8 +246,8 @@ class QuadrupedGymEnv(gym.Env):
       elif self._motor_control_mode == "CARTESIAN_PD":
         observation_high = (np.concatenate((np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
                                           self._robot_config.VELOCITY_LIMITS, # limit on velocity
-                                          np.array([1]* self._robot_config.NUM_LEGS), # limit on nb leg tuching the floor
-                                          np.array([0.15,0.2,0.3]),
+                                          np.array([1]* self._robot_config.NUM_LEGS), # limit on nb leg touching the floor
+                                          np.array([0.15,0.2,0.3]), # roll pitch yaw
                                           np.array([1.0]*4))) +  OBSERVATION_EPS) # limit on orientation
         observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), # joint limit
                                           -self._robot_config.VELOCITY_LIMITS,
@@ -258,7 +258,7 @@ class QuadrupedGymEnv(gym.Env):
       elif self._motor_control_mode == "TORQUE":
         observation_high = (np.concatenate((np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
                                           self._robot_config.VELOCITY_LIMITS, # limit on velocity
-                                          np.array([1]* self._robot_config.NUM_LEGS), # limit on nb leg tuching the floor
+                                          np.array([1]* self._robot_config.NUM_LEGS), # limit on nb leg touching the floor
                                           np.array([0.15,0.2,0.3]),
                                           np.array([1.0]*4))) +  OBSERVATION_EPS) # limit on orientation
         observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), # joint limit
@@ -406,7 +406,7 @@ class QuadrupedGymEnv(gym.Env):
     return max(reward,0) # keep rewards positive
 
 
-  def _reward_lr_course(self, des_vel_x=-0.3):
+  def _reward_lr_course(self, des_vel_x=2.0):
     """ Implement your reward function here. How will you improve upon the above? """
     # [TODO] add your reward function. 
     # track the desired velocity 
@@ -420,7 +420,7 @@ class QuadrupedGymEnv(gym.Env):
     for tau,vel in zip(self._dt_motor_torques,self._dt_motor_velocities):
       energy_reward += np.abs(np.dot(tau,vel)) * self._time_step
 
-    reward = 10*vel_tracking_reward \
+    reward = 4*vel_tracking_reward \
             + 2*yaw_reward \
             + drift_reward \
             - 0.01 * energy_reward \
@@ -491,7 +491,8 @@ class QuadrupedGymEnv(gym.Env):
       des_v = J @ des_joint_vel
       # Calculate torque contribution from Cartesian PD (Equation 5) [Make sure you are using matrix multiplications]
       # tau += np.zeros(3) # [TODO]
-      tau += np.transpose(J) @ (kpCartesian@(des_foot_pos - p) + kdCartesian@(des_v - v))
+      tau = np.zeros(3)
+      tau += np.transpose(J) @ (kpCartesian@(des_foot_pos[3*i:3*i+3] - p) + kdCartesian@(des_v - v))
       action[3*i:3*i+3] = tau
 
     return action
@@ -529,7 +530,7 @@ class QuadrupedGymEnv(gym.Env):
     action = np.zeros(12)
     # loop through each leg
     for i in range(4):
-      # initialize torques for legi
+      # initialize torques for legs
       tau = np.zeros(3)
       # get desired foot i pos (xi, yi, zi) in leg frame
       leg_xyz = np.array([xs[i],sideSign[i] * foot_y,zs[i]])
@@ -550,7 +551,7 @@ class QuadrupedGymEnv(gym.Env):
       des_v = J @ des_joint_vel
       # Calculate torque contribution from Cartesian PD (Equation 5) [Make sure you are using matrix multiplications]
       # tau += np.zeros(3) # [TODO]
-      tau += np.transpose(J) @ (kpCartesian@(leg_xyz-p) + kdCartesian@(des_v - v))
+      tau += np.transpose(J) @ (kpCartesian@(leg_xyz - p) + kdCartesian@(des_v - v))
       action[3*i:3*i+3] = tau
 
     return action
