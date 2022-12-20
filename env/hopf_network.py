@@ -62,7 +62,7 @@ class HopfNetwork():
                 des_step_len=0.05,       # desired step length 
                 max_step_len_rl=0.1,     # max step length, for RL scaling 
                 use_RL=False,            # whether to learn parameters with RL
-                move_reverse=False
+                move_reverse=False       # wheater to walk backwards
                 ):
     
     ###############

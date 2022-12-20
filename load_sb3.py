@@ -58,7 +58,7 @@ from utils.file_utils import get_latest_model, load_all_results
 LEARNING_ALG = "PPO"
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 interm_dir = FILE_PATH + "/logs/intermediate_models/"
-log_dir = interm_dir + '121822175612'
+log_dir = interm_dir + '120422191610'
 
 # initialize env configs (render at test time)
 # check ideal conditions, as well as robustness to UNSEEN noise during training
@@ -66,8 +66,8 @@ env_config = {}
 env_config['render'] = True
 env_config['record_video'] = False
 env_config['add_noise'] = False
-env_config['motor_control_mode'] = 'CPG'
-#env_config['competition_env'] = True
+env_config['motor_control_mode'] = 'OLD_CPG'
+env_config['competition_env'] = True
 
 # get latest model and normalization stats, and plot 
 stats_path = os.path.join(log_dir, "vec_normalize.pkl")
@@ -83,7 +83,7 @@ env = make_vec_env(env, n_envs=1)
 env = VecNormalize.load(stats_path, env)
 env.training = False    # do not update stats at test time
 env.norm_reward = False # reward normalization is not needed at test time
-env.move_reverse = True
+env.move_reverse = False
 
 # load model
 if LEARNING_ALG == "PPO":
@@ -96,7 +96,7 @@ obs = env.reset()
 episode_reward = 0
 
 # [TODO] initialize arrays to save data from simulation 
-NUM_STEPS = 1000
+NUM_STEPS = 10000
 TIME_STEP = 0.001
 t = np.arange(NUM_STEPS)*TIME_STEP
 

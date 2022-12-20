@@ -269,15 +269,16 @@ class QuadrupedGymEnv(gym.Env):
 
       elif self._motor_control_mode in ["OLD_CPG", "OLD_CARTESIAN_PD", "OLD_PD", "OLD_TORQUE"]:
         observation_high = (np.concatenate((np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
-                                         self._robot_config.VELOCITY_LIMITS, # velocity limit
-                                         np.array([ 2 ] * self._robot_config.NUM_LEGS),  # limit on r (CPG)
-                                         np.array([ 2*np.pi ] * self._robot_config.NUM_LEGS),  # limit on theta (CPG)
-                                         np.array([1.0]*4))) +  OBSERVATION_EPS) # limit on base orientation
+                                         self._robot_config.VELOCITY_LIMITS,
+                                         np.array([ 2 ] * self._robot_config.NUM_LEGS),
+                                         np.array([ 2*np.pi ] * self._robot_config.NUM_LEGS),
+                                         np.array([1.0]*4))) +  OBSERVATION_EPS)
         observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), # joint limit
                                          -self._robot_config.VELOCITY_LIMITS/1.5,
                                          np.array([ 0, ] * self._robot_config.NUM_LEGS),
                                          np.array([ 0 ] * self._robot_config.NUM_LEGS),
                                          np.array([-1.0]*4))) -  OBSERVATION_EPS)
+
       else:
         raise ValueError("Motor control mode does not exist")    
     else:
@@ -341,7 +342,7 @@ class QuadrupedGymEnv(gym.Env):
         self._observation = np.concatenate((self.robot.GetMotorAngles(), 
                                             self.robot.GetMotorVelocities(),
                                             self._cpg.get_r(),
-                                            self._cpg.get_theta(),
+                                            self._cpg.get_theta(), # dr dtheta
                                             self.robot.GetBaseOrientation() ))
       else:
         raise ValueError("Motor control mode is wrong")
@@ -420,7 +421,7 @@ class QuadrupedGymEnv(gym.Env):
       energy_reward += np.abs(np.dot(tau,vel)) * self._time_step
 
     reward = 10*vel_tracking_reward \
-            + yaw_reward \
+            + 2*yaw_reward \
             + drift_reward \
             - 0.01 * energy_reward \
             - 0.1 * np.linalg.norm(self.robot.GetBaseOrientation() - np.array([0,0,0,1]))
