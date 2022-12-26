@@ -46,7 +46,7 @@ from env.hopf_network import HopfNetwork
 from env.quadruped_gym_env import QuadrupedGymEnv
 
 
-ADD_CARTESIAN_PD = True
+ADD_CARTESIAN_PD = False
 TIME_STEP = 0.001
 foot_y = 0.0838 # this is the hip length 
 sideSign = np.array([-1, 1, -1, 1]) # get correct hip sign (body right is negative)
@@ -69,7 +69,8 @@ TEST_STEPS = int(10 / (TIME_STEP))
 t = np.arange(TEST_STEPS)*TIME_STEP
 
 # [TODO] initialize data structures to save CPG and robot states
-
+cpg_pos_states = np.zeros((TEST_STEPS,2,4))
+cpg_speed_states = np.zeros((TEST_STEPS,2,4))
 
 ############## Sample Gains
 # joint PD gains
@@ -136,18 +137,87 @@ for j in range(TEST_STEPS):
   env.step(action)
 
   # [TODO] save any CPG or robot states
-
+  cpg_pos_states[j,:,:] = cpg.X 
+  cpg_speed_states[j,:,:] = cpg.X_dot
 
 
 ##################################################### 
 # PLOTS
 #####################################################
 # example
-fig = plt.figure()
-plt.plot(t,foot_pos[0,:])
-plt.plot(t,des_foot_pos[0,:])
+#fig = plt.figure()
+#plt.plot(t,foot_pos[0,:])
+#plt.plot(t,des_foot_pos[0,:])
 #plt.legend()
+#plt.show()
+
+fig, ax = plt.subplots(4, 2)
+#fig, cx = plt.subplots()
+
+# make a plot with different y-axis using second axis object
+
+for i in range(4):
+  # one plot per leg
+  a1 = ax[i][0].plot(t, cpg_pos_states[:, 0, i], label = 'r')
+  #a2 = ax[i][0].plot(t, cpg_pos_states[:, 1, i], label = 'theta')
+  #secax = ax.secondary_xaxis('right', functions=cpg_pos_states[:, 1, i])
+  #secax.set_ylabel('angle [rad]')
+  #a2 = ax2.plot(t, cpg_pos_states[:, 1, i], label = 'theta')
+  a3 = ax[i][1].plot(t, cpg_speed_states[:, 0, i], label = 'rdot')
+  #a4 = ax[i][1].plot(t, cpg_speed_states[:, 1, i], label = 'thetadot')
+
+  ax2=ax[i][0].twinx()
+  ax2_1=ax[i][1].twinx()
+  ax2.set_ylabel('Angle [rad]')
+  ax2_1.set_ylabel('Angular speed [rad/s]', fontsize = 7)
+  a2 = ax2.plot(t, cpg_pos_states[:, 1, i], color='tab:orange', label='theta')
+  a4 = ax2_1.plot(t, cpg_speed_states[:, 1, i], color= 'tab:orange', label='theta_dot')
+  
+  ax[i][0].set_xlim(1, 2)
+  ax[i][1].set_xlim(1, 2)
+  ax[i][0].set_xlabel('Time [s]')
+  ax[i][1].set_xlabel('Time [s]')
+  ax[i][0].set_ylabel('Distance [m]')
+  ax[i][1].set_ylabel('Speed [m/s]')
+
+fig.suptitle("CPG states for trot gait", fontweight ="bold", fontsize = 10)
+ax[0, 0].set_title("CPG Position States for each leg (FR, FL, RR, RL)", fontsize = 8)
+ax[0, 1].set_title("CPG Speed States for each leg (FR, FL, RR, RL)", fontsize = 8)
+
+lgs1 = a1+a2
+lgs2 = a3+a4
+labs1 = [l.get_label() for l in lgs1]
+labs2 = [l.get_label() for l in lgs2]
+fig.legend(lgs1, labs1, "upper left")
+fig.legend(lgs2, labs2, loc="upper right")
+#fig.legend([a1, a2], labels=["r", "theta"], loc="upper left")
+#fig.legend([a3, a4], labels=["r_dot", "theta_dot"], loc="upper right")
+
 plt.show()
+
+# PLOT WITH AND WITHOUT CARTESIAN PD
+#fig = plt.figure()
+fig, ax = plt.subplots()
+b1 = ax.plot(t,des_foot_pos[0,:], label = 'Desired Foot Position')
+#ax2 = ax.twinx()
+b2 = ax.plot(t,foot_pos[0,:], color= 'tab:orange', label = 'Actual Foot Position')
+if ADD_CARTESIAN_PD:
+  plt.title("Plot comparing the desired foot position vs actual foot position with Cartesian PD", fontsize = 10)
+if not ADD_CARTESIAN_PD:
+  plt.title("Plot comparing the desired foot position vs actual foot position without Cartesian PD", fontsize = 10)
+ax.set_xlabel('Time [s]')
+ax.set_ylabel('Position [m]')
+ax.set_ylim(-0.06, 0.06)
+
+#lgs = b1+b2
+#labs = [l.get_label() for l in lgs]
+#ax.legend(lgs, labs, loc="upper right")
+plt.legend([b1, b2], labels=["Desired foot position", "Actual foot position"],  loc="upper right")
+plt.show()
+
+
+
+
 
 #cpg, foot xz
 # fig = plt.figure()
@@ -155,7 +225,7 @@ plt.show()
 # plt.legend()
 # plt.show()
 
-fig = plt.figure()
-plt.plot(r)
-plt.plot(teta)
-plt.show()
+#fig = plt.figure()
+#plt.plot(r)
+#plt.plot(teta)
+#plt.show()
