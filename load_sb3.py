@@ -58,7 +58,7 @@ from utils.file_utils import get_latest_model, load_all_results
 LEARNING_ALG = "SAC"
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 interm_dir = FILE_PATH + "/logs/intermediate_models/"
-log_dir = interm_dir + '122022105013'
+log_dir = interm_dir + '122922223535'
 
 # initialize env configs (render at test time)
 # check ideal conditions, as well as robustness to UNSEEN noise during training
@@ -66,7 +66,7 @@ env_config = {}
 env_config['render'] = True
 env_config['record_video'] = False
 env_config['add_noise'] = False
-env_config['motor_control_mode'] = 'CARTESIAN_PD'
+env_config['motor_control_mode'] = 'CPG'
 env_config['competition_env'] = False
 
 # get latest model and normalization stats, and plot 
@@ -132,7 +132,5 @@ for i in range(NUM_STEPS):
     
 # [TODO] make plots:
 fig = plt.figure()
-plt.plot(t, CPG_theta[0,:])
+plt.plot(t, XYZ_base[0,:])
 plt.show()
-
-# invert frequency

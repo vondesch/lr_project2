@@ -406,13 +406,15 @@ class QuadrupedGymEnv(gym.Env):
     return max(reward,0) # keep rewards positive
 
 
-  def _reward_lr_course(self, des_vel_x=2.0):
+  def _reward_lr_course(self, des_vel_x=-0.6):
     """ Implement your reward function here. How will you improve upon the above? """
     # [TODO] add your reward function. 
     # track the desired velocity 
     vel_tracking_reward = 0.05 * np.exp( -1/ 0.25 *  (self.robot.GetBaseLinearVelocity()[0] - des_vel_x)**2 )
     # minimize yaw (go straight)
-    yaw_reward = -0.2 * np.abs(self.robot.GetBaseOrientationRollPitchYaw()[2]) 
+    yaw_reward = -0.2 * np.abs(self.robot.GetBaseOrientationRollPitchYaw()[2])
+    # minimize roll (stand straight)
+    roll_reward = -0.2 * np.abs(self.robot.GetBaseOrientationRollPitchYaw()[0]) 
     # don't drift laterally 
     drift_reward = -0.01 * abs(self.robot.GetBasePosition()[1])
     # minimize energy
@@ -420,8 +422,9 @@ class QuadrupedGymEnv(gym.Env):
     for tau,vel in zip(self._dt_motor_torques,self._dt_motor_velocities):
       energy_reward += np.abs(np.dot(tau,vel)) * self._time_step
 
-    reward = 4*vel_tracking_reward \
+    reward = 10*vel_tracking_reward \
             + 2*yaw_reward \
+            + 4*roll_reward \
             + drift_reward \
             - 0.01 * energy_reward \
             - 0.1 * np.linalg.norm(self.robot.GetBaseOrientation() - np.array([0,0,0,1]))
@@ -503,7 +506,10 @@ class QuadrupedGymEnv(gym.Env):
     u = np.clip(actions,-1,1)
 
     # scale omega to ranges, and set in CPG (range is an example)
-    omega = self._scale_helper( u[0:4], 5, 5*2*np.pi)
+    if not self.move_reverse:
+      omega = self._scale_helper( u[0:4], 5, 5*2*np.pi)
+    else:
+      omega = self._scale_helper( u[0:4], -5*2*np.pi, -5)
     self._cpg.set_omega_rl(omega)
 
     # scale mu to ranges, and set in CPG (squared since we converge to the sqrt in the CPG amplitude)
