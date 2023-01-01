@@ -51,7 +51,7 @@ class HopfNetwork():
                 mu=1**2,                 # intrinsic amplitude, converges to sqrt(mu)
                 omega_swing= 5*2*np.pi,  # frequency in swing phase (can edit)
                 omega_stance=2*2*np.pi,  # frequency in stance phase (can edit)
-                gait="PACE",             # Gait, can be TROT, WALK, PACE, BOUND, etc.
+                gait="TROT",             # Gait, can be TROT, WALK, PACE, BOUND, etc.
                 alpha=50,                # amplitude convergence factor
                 coupling_strength=1,     # coefficient to multiply coupling matrix
                 couple=True,             # whether oscillators should be coupled
@@ -196,7 +196,7 @@ class HopfNetwork():
       r_dot = self._alpha*(self._mu-r**2)*r # [TODO]
       # determine whether oscillator i is in swing or stance phase to set natural frequency omega_swing or omega_stance (see Section 3)
       theta = theta%(2*np.pi)
-      if theta >= 0 or theta <= np.pi :
+      if theta >= 0 and theta <= np.pi :
         omega = self._omega_swing
       else:
         omega = self._omega_stance
