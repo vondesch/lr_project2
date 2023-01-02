@@ -218,7 +218,7 @@ class QuadrupedGymEnv(gym.Env):
       if self._motor_control_mode == "CPG":
         observation_high = (np.concatenate((np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
                                           self._robot_config.VELOCITY_LIMITS, # limit on velocity
-                                          np.array([ 2 ] * self._robot_config.NUM_LEGS), # limit on r (CPG)
+                                          np.array([ 5 ] * self._robot_config.NUM_LEGS), # limit on r (CPG)
                                           np.array([ 2*np.pi ] * self._robot_config.NUM_LEGS), # limit on theta (CPG)
                                           np.array([1]* self._robot_config.NUM_LEGS), # limit on nb leg tuching the floor
                                           np.array([0.15,0.2,0.3]),
