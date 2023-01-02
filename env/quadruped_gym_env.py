@@ -439,7 +439,7 @@ class QuadrupedGymEnv(gym.Env):
     elif self._TASK_ENV == "LR_COURSE_TASK":
       return self._reward_lr_course()
     else:
-      raise ValueError("This task mode not implemented yet.")
+      raise ValueError("This task mode is not implemented yet.")
 
   ######################################################################################
   # Step simulation, map policy network actions to joint commands, etc. 
@@ -447,7 +447,7 @@ class QuadrupedGymEnv(gym.Env):
   def _transform_action_to_motor_command(self, action):
     """ Map actions from RL (i.e. in [-1,1]) to joint commands based on motor_control_mode. """
     # clip actions to action bounds
-    action = np.clip(action, -self._action_bound - ACTION_EPS,self._action_bound + ACTION_EPS)
+    action = np.clip(action, -self._action_bound - ACTION_EPS, self._action_bound + ACTION_EPS)
     if self._motor_control_mode in ["PD", "OLD_PD"]:
       action = self._scale_helper(action, np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS))
       action = np.clip(action, np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS))
@@ -547,7 +547,7 @@ class QuadrupedGymEnv(gym.Env):
       # tau += np.zeros(3) # [TODO] 
       tau = kp[i*3:i*3+3]*(leg_q-q[i*3:i*3+3]) + kd[i*3:i*3+3]*(des_joint_vel - dq[i*3:i*3+3])
 
-      # add Cartesian PD contribution (as you wish) ?????????????????????????????????????????!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      # add Cartesian PD contribution
       # Get current Jacobian and foot position in leg frame (see ComputeJacobianAndPosition() in quadruped.py)
       # [TODO] 
       J, p = self.robot.ComputeJacobianAndPosition(i)

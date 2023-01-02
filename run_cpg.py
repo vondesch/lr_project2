@@ -46,7 +46,7 @@ from env.hopf_network import HopfNetwork
 from env.quadruped_gym_env import QuadrupedGymEnv
 
 
-ADD_CARTESIAN_PD = False
+ADD_CARTESIAN_PD = True
 TIME_STEP = 0.001
 foot_y = 0.0838 # this is the hip length 
 sideSign = np.array([-1, 1, -1, 1]) # get correct hip sign (body right is negative)
@@ -57,13 +57,13 @@ env = QuadrupedGymEnv(render=True,              # visualize
                     time_step=TIME_STEP,
                     action_repeat=1,
                     motor_control_mode="CPG",
-                    add_noise=False,    # start in ideal conditions
+                    add_noise=True,    # start in ideal conditions
                     move_reverse=False
                     # record_video=True
                     )
 
 # initialize Hopf Network, supply gait
-cpg = HopfNetwork(time_step=TIME_STEP, omega_swing=3*2*np.pi, omega_stance=1.5*2*np.pi)
+cpg = HopfNetwork(time_step=TIME_STEP, omega_swing=8*2*np.pi, omega_stance=2.5*2*np.pi)
 
 TEST_STEPS = int(10 / (TIME_STEP))
 t = np.arange(TEST_STEPS)*TIME_STEP
@@ -71,6 +71,10 @@ t = np.arange(TEST_STEPS)*TIME_STEP
 # [TODO] initialize data structures to save CPG and robot states
 cpg_pos_states = np.zeros((TEST_STEPS,2,4))
 cpg_speed_states = np.zeros((TEST_STEPS,2,4))
+r = np.zeros(TEST_STEPS)
+theta = np.zeros(TEST_STEPS)
+foot_pos = np.zeros([3,TEST_STEPS])
+des_foot_pos = np.zeros([1,TEST_STEPS])
 
 ############## Sample Gains
 # joint PD gains
@@ -79,22 +83,14 @@ kd=np.array([2,2,2])
 # Cartesian PD gains
 kpCartesian = np.diag([500]*3)
 kdCartesian = np.diag([20]*3)
-x_des = np.zeros(TEST_STEPS)
-r = np.zeros(TEST_STEPS)
-teta = np.zeros(TEST_STEPS)
-
-# matrices for the plots
-foot_pos = np.zeros([3,TEST_STEPS])
-des_foot_pos = np.zeros([1,TEST_STEPS])
 
 for j in range(TEST_STEPS):
   # initialize torque array to send to motors
   action = np.zeros(12) 
   # get desired foot positions from CPG 
   xs,zs = cpg.update()
-  x_des[j] = xs[0]
   r = cpg.X[0,0]
-  teta = cpg.X[1,0]
+  theta = cpg.X[1,0]
   # [TODO] get current motor angles and velocities for joint PD, see GetMotorAngles(), GetMotorVelocities() in quadruped.py
   q = env.robot.GetMotorAngles()
   dq = env.robot.GetMotorVelocities()
@@ -144,15 +140,8 @@ for j in range(TEST_STEPS):
 ##################################################### 
 # PLOTS
 #####################################################
-# example
-#fig = plt.figure()
-#plt.plot(t,foot_pos[0,:])
-#plt.plot(t,des_foot_pos[0,:])
-#plt.legend()
-#plt.show()
 
 fig, ax = plt.subplots(4, 2)
-#fig, cx = plt.subplots()
 
 # make a plot with different y-axis using second axis object
 
@@ -203,7 +192,7 @@ b1 = ax.plot(t,des_foot_pos[0,:], label = 'Desired Foot Position')
 b2 = ax.plot(t,foot_pos[0,:], color= 'tab:orange', label = 'Actual Foot Position')
 if ADD_CARTESIAN_PD:
   plt.title("Plot comparing the desired foot position vs actual foot position with Cartesian PD", fontsize = 10)
-if not ADD_CARTESIAN_PD:
+else:
   plt.title("Plot comparing the desired foot position vs actual foot position without Cartesian PD", fontsize = 10)
 ax.set_xlabel('Time [s]')
 ax.set_ylabel('Position [m]')
@@ -214,18 +203,3 @@ ax.set_ylim(-0.06, 0.06)
 #ax.legend(lgs, labs, loc="upper right")
 plt.legend([b1, b2], labels=["Desired foot position", "Actual foot position"],  loc="upper right")
 plt.show()
-
-
-
-
-
-#cpg, foot xz
-# fig = plt.figure()
-# plt.plot(t,joint_pos[1,:], label='FR thigh')
-# plt.legend()
-# plt.show()
-
-#fig = plt.figure()
-#plt.plot(r)
-#plt.plot(teta)
-#plt.show()

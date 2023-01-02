@@ -104,8 +104,6 @@ class HopfNetwork():
     self.w = coupling_strength*np.ones((4,4))
 
 
-
-
   def _set_gait(self,gait):
     """ For coupling oscillators in phase space. 
     [TODO] update all coupling matrices
