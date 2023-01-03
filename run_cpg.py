@@ -51,13 +51,13 @@ TIME_STEP = 0.001
 foot_y = 0.0838 # this is the hip length 
 sideSign = np.array([-1, 1, -1, 1]) # get correct hip sign (body right is negative)
 
-env = QuadrupedGymEnv(render=True,              # visualize
+env = QuadrupedGymEnv(render=False,              # visualize
                     on_rack=False,              # useful for debugging! 
                     isRLGymInterface=False,     # not using RL
                     time_step=TIME_STEP,
                     action_repeat=1,
                     motor_control_mode="CPG",
-                    add_noise=True,    # start in ideal conditions
+                    add_noise=False,    # start in ideal conditions
                     move_reverse=False
                     # record_video=True
                     )
@@ -82,7 +82,7 @@ kp=np.array([100,100,100])
 kd=np.array([2,2,2])
 # Cartesian PD gains
 kpCartesian = np.diag([500]*3)
-kdCartesian = np.diag([20]*3)
+kdCartesian = np.diag([50]*3)
 
 for j in range(TEST_STEPS):
   # initialize torque array to send to motors
@@ -141,6 +141,8 @@ for j in range(TEST_STEPS):
 # PLOTS
 #####################################################
 
+
+
 fig, ax = plt.subplots(4, 2)
 
 # make a plot with different y-axis using second axis object
@@ -157,21 +159,21 @@ for i in range(4):
 
   ax2=ax[i][0].twinx()
   ax2_1=ax[i][1].twinx()
-  ax2.set_ylabel('Angle [rad]')
-  ax2_1.set_ylabel('Angular speed [rad/s]', fontsize = 7)
+  ax2.set_ylabel('Phase [rad]')
+  ax2_1.set_ylabel('Phase speed [rad/s]', fontsize = 15)
   a2 = ax2.plot(t, cpg_pos_states[:, 1, i], color='tab:orange', label='theta')
   a4 = ax2_1.plot(t, cpg_speed_states[:, 1, i], color= 'tab:orange', label='theta_dot')
   
-  ax[i][0].set_xlim(1, 2)
-  ax[i][1].set_xlim(1, 2)
+  ax[i][0].set_xlim(0, 0.7)
+  ax[i][1].set_xlim(0, 0.7)
   ax[i][0].set_xlabel('Time [s]')
   ax[i][1].set_xlabel('Time [s]')
-  ax[i][0].set_ylabel('Distance [m]')
-  ax[i][1].set_ylabel('Speed [m/s]')
+  ax[i][0].set_ylabel('Amplitude')
+  ax[i][1].set_ylabel('Amplitude speed')
 
-fig.suptitle("CPG states for trot gait", fontweight ="bold", fontsize = 10)
-ax[0, 0].set_title("CPG Position States for each leg (FR, FL, RR, RL)", fontsize = 8)
-ax[0, 1].set_title("CPG Speed States for each leg (FR, FL, RR, RL)", fontsize = 8)
+fig.suptitle("CPG states for trot gait", fontweight ="bold", fontsize = 15)
+#ax[0, 0].set_title("CPG Position States for each leg (FR, FL, RR, RL)", fontsize = 8)
+#ax[0, 1].set_title("CPG Speed States for each leg (FR, FL, RR, RL)", fontsize = 8)
 
 lgs1 = a1+a2
 lgs2 = a3+a4

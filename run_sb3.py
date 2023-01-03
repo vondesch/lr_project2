@@ -54,8 +54,8 @@ move_reverse = True
 # after implementing, you will want to test how well the agent learns with your MDP: 
 env_configs = {"motor_control_mode":"CPG",
                "task_env": "LR_COURSE_TASK",
-               "observation_space_mode": "LR_COURSE_OBS"}
-# env_configs = {}
+               "observation_space_mode": "LR_COURSE_OBS",
+               "move_reverse": move_reverse}
 
 if USE_GPU and LEARNING_ALG=="SAC":
     gpu_arg = "auto" 
@@ -76,7 +76,6 @@ os.makedirs(SAVE_PATH, exist_ok=True)
 checkpoint_callback = CheckpointCallback(save_freq=30000, save_path=SAVE_PATH,name_prefix='rl_model', verbose=2)
 # create Vectorized gym environment
 env = lambda: QuadrupedGymEnv(**env_configs)
-env.move_reverse = move_reverse
 env = make_vec_env(env, monitor_dir=SAVE_PATH,n_envs=NUM_ENVS)
 # normalize observations to stabilize learning (why?)
 env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=100.)

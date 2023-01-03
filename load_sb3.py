@@ -34,6 +34,7 @@ import numpy as np
 import time
 import matplotlib
 import matplotlib.pyplot as plt
+import pandas as pd
 from sys import platform
 # may be helpful depending on your system
 # if platform =="darwin": # mac
@@ -58,7 +59,7 @@ from utils.file_utils import get_latest_model, load_all_results
 LEARNING_ALG = "SAC"
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 interm_dir = FILE_PATH + "/logs/intermediate_models/"
-log_dir = interm_dir + '122922223535'
+log_dir = interm_dir + '010223235603'
 
 # initialize env configs (render at test time)
 # check ideal conditions, as well as robustness to UNSEEN noise during training
@@ -68,6 +69,7 @@ env_config['record_video'] = False
 env_config['add_noise'] = False
 env_config['motor_control_mode'] = 'CPG'
 env_config['competition_env'] = False
+env_config['move_reverse'] = True
 
 # get latest model and normalization stats, and plot 
 stats_path = os.path.join(log_dir, "vec_normalize.pkl")
@@ -83,7 +85,6 @@ env = make_vec_env(env, n_envs=1)
 env = VecNormalize.load(stats_path, env)
 env.training = False    # do not update stats at test time
 env.norm_reward = False # reward normalization is not needed at test time
-env.move_reverse = False
 
 # load model
 if LEARNING_ALG == "PPO":
@@ -131,6 +132,26 @@ for i in range(NUM_STEPS):
     
     
 # [TODO] make plots:
-fig = plt.figure()
-plt.plot(t, XYZ_base[0,:])
+"""
+fig, ax = plt.subplots()
+ax2 = ax.twinx()
+ax.set_xlabel("time")
+ax.plot(t, XYZ_base[0,:], color="red")
+ax2.plot(t, XYZ_base[1,:], color="blue")
+ax.set_ylabel("base x position [m]")
+ax.legend(["x"])
+ax2.set_ylabel("base y position [m]")
+ax2.legend(["y"], loc="upper center")
+plt.show()
+"""
+
+fig, ax = plt.subplots()
+ax2 = ax.twinx()
+ax.set_xlabel("time [s]")
+ax.plot(t[0:1800], CPG_r[0,0:1800], color="red")
+ax2.plot(t[0:1800], CPG_theta[0,0:1800], color="blue")
+ax.set_ylabel("Amplitude r")
+ax.legend(["r"])
+ax2.set_ylabel("Phase theta [rad]")
+ax2.legend(["theta"], loc="upper center")
 plt.show()

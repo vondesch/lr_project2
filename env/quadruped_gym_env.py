@@ -102,7 +102,7 @@ class QuadrupedGymEnv(gym.Env):
       robot_config=robot_config,
       isRLGymInterface=True,
       time_step=0.001,
-      action_repeat=10,  
+      action_repeat=1,  
       distance_weight=2,
       energy_weight=0.008,
       motor_control_mode="CPG",
@@ -220,26 +220,24 @@ class QuadrupedGymEnv(gym.Env):
                                           self._robot_config.VELOCITY_LIMITS, # limit on velocity
                                           np.array([ 5 ] * self._robot_config.NUM_LEGS), # limit on r (CPG)
                                           np.array([ 2*np.pi ] * self._robot_config.NUM_LEGS), # limit on theta (CPG)
-                                          np.array([1]* self._robot_config.NUM_LEGS), # limit on nb leg tuching the floor
                                           np.array([0.15,0.2,0.3]),
                                           np.array([1.0]*4))) +  OBSERVATION_EPS) # limit on orientation
         observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), # joint limit
                                           -self._robot_config.VELOCITY_LIMITS,
                                           np.array([ 0 ] * self._robot_config.NUM_LEGS),
                                           np.array([ 0 ] * self._robot_config.NUM_LEGS),
-                                          np.array([2]* self._robot_config.NUM_LEGS),
                                           np.array([-0.15,-0.2,-0.3]),
                                           np.array([-1.0]*4))) -  OBSERVATION_EPS)
 
       elif self._motor_control_mode == "PD":
         observation_high = (np.concatenate((np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
                                           self._robot_config.VELOCITY_LIMITS, # limit on velocity
-                                          np.array([1]* self._robot_config.NUM_LEGS), # limit on nb leg touching the floor
+                                          np.array([4]* self._robot_config.NUM_LEGS), # limit on nb leg touching the floor
                                           np.array([0.15,0.2,0.3]),
                                           np.array([1.0]*4))) +  OBSERVATION_EPS) # limit on orientation
         observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), # joint limit
                                           -self._robot_config.VELOCITY_LIMITS,
-                                          np.array([2]* self._robot_config.NUM_LEGS),
+                                          np.array([0]* self._robot_config.NUM_LEGS),
                                           np.array([-0.15,-0.2,-0.3]),
                                           np.array([-1.0]*4))) -  OBSERVATION_EPS)
 
@@ -269,8 +267,8 @@ class QuadrupedGymEnv(gym.Env):
 
       elif self._motor_control_mode in ["OLD_CPG", "OLD_CARTESIAN_PD", "OLD_PD", "OLD_TORQUE"]:
         observation_high = (np.concatenate((np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
-                                         self._robot_config.VELOCITY_LIMITS,
-                                         np.array([ 2 ] * self._robot_config.NUM_LEGS),
+                                         self._robot_config.VELOCITY_LIMITS, # velocity limits
+                                         np.array([ 2 ] * self._robot_config.NUM_LEGS), # 
                                          np.array([ 2*np.pi ] * self._robot_config.NUM_LEGS),
                                          np.array([1.0]*4))) +  OBSERVATION_EPS)
         observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), # joint limit
@@ -314,9 +312,9 @@ class QuadrupedGymEnv(gym.Env):
                                             self.robot.GetMotorVelocities(),
                                             self._cpg.get_r(),
                                             self._cpg.get_theta(), # dr dtheta
-                                            self.robot.GetContactInfo()[3],
                                             self.robot.GetBaseOrientationRollPitchYaw(),
                                             self.robot.GetBaseOrientation() ))
+
       elif self._motor_control_mode == "PD":
         self._observation = np.concatenate((self.robot.GetMotorAngles(),
                                             self.robot.GetMotorVelocities(),
@@ -342,7 +340,7 @@ class QuadrupedGymEnv(gym.Env):
         self._observation = np.concatenate((self.robot.GetMotorAngles(), 
                                             self.robot.GetMotorVelocities(),
                                             self._cpg.get_r(),
-                                            self._cpg.get_theta(), # dr dtheta
+                                            self._cpg.get_theta(),
                                             self.robot.GetBaseOrientation() ))
       else:
         raise ValueError("Motor control mode is wrong")
@@ -406,7 +404,7 @@ class QuadrupedGymEnv(gym.Env):
     return max(reward,0) # keep rewards positive
 
 
-  def _reward_lr_course(self, des_vel_x=-0.6):
+  def _reward_lr_course(self, des_vel_x= -1.0):
     """ Implement your reward function here. How will you improve upon the above? """
     # [TODO] add your reward function. 
     # track the desired velocity 
@@ -422,12 +420,13 @@ class QuadrupedGymEnv(gym.Env):
     for tau,vel in zip(self._dt_motor_torques,self._dt_motor_velocities):
       energy_reward += np.abs(np.dot(tau,vel)) * self._time_step
 
-    reward = 10*vel_tracking_reward \
+    reward = 4*vel_tracking_reward \
             + 2*yaw_reward \
-            + 4*roll_reward \
-            + drift_reward \
-            - 0.01 * energy_reward \
-            - 0.1 * np.linalg.norm(self.robot.GetBaseOrientation() - np.array([0,0,0,1]))
+            + roll_reward \
+            + drift_reward #\
+            #- 0.01 * energy_reward \
+            #- 0.1 * np.linalg.norm(self.robot.GetBaseOrientation() - np.array([0,0,0,1]))
+    print(4*vel_tracking_reward, 2*yaw_reward, roll_reward, drift_reward)
 
     return max(reward,0) # keep rewards positive
 
@@ -506,10 +505,7 @@ class QuadrupedGymEnv(gym.Env):
     u = np.clip(actions,-1,1)
 
     # scale omega to ranges, and set in CPG (range is an example)
-    if not self.move_reverse:
-      omega = self._scale_helper( u[0:4], 5, 5*2*np.pi)
-    else:
-      omega = self._scale_helper( u[0:4], -5*2*np.pi, -5)
+    omega = self._scale_helper( u[0:4], -7*2*np.pi, -2*np.pi)
     self._cpg.set_omega_rl(omega)
 
     # scale mu to ranges, and set in CPG (squared since we converge to the sqrt in the CPG amplitude)
