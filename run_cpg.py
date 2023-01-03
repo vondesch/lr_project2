@@ -46,7 +46,7 @@ from env.hopf_network import HopfNetwork
 from env.quadruped_gym_env import QuadrupedGymEnv
 
 
-ADD_CARTESIAN_PD = True
+ADD_CARTESIAN_PD = "both"
 TIME_STEP = 0.001
 foot_y = 0.0838 # this is the hip length 
 sideSign = np.array([-1, 1, -1, 1]) # get correct hip sign (body right is negative)
@@ -78,11 +78,11 @@ des_foot_pos = np.zeros([1,TEST_STEPS])
 
 ############## Sample Gains
 # joint PD gains
-kp=np.array([100,100,100])
-kd=np.array([2,2,2])
+kp=np.array([480,480,480])
+kd=np.array([6,6,6])
 # Cartesian PD gains
-kpCartesian = np.diag([500]*3)
-kdCartesian = np.diag([50]*3)
+kpCartesian = np.diag([8000]*3)
+kdCartesian = np.diag([90]*3)
 
 for j in range(TEST_STEPS):
   # initialize torque array to send to motors
@@ -107,10 +107,11 @@ for j in range(TEST_STEPS):
     leg_q = env.robot.ComputeInverseKinematics(i ,leg_xyz)
     # Add joint PD contribution to tau for leg i (Equation 4)
     # tau += np.zeros(3) # [TODO] 
-    tau += kp*(leg_q-q[i*3:i*3+3]) + kd*(des_joint_vel - dq[i*3:i*3+3])
+    if ADD_CARTESIAN_PD == "joint" or ADD_CARTESIAN_PD == "both":
+      tau += kp*(leg_q-q[i*3:i*3+3]) + kd*(des_joint_vel - dq[i*3:i*3+3])
 
     # add Cartesian PD contribution
-    if ADD_CARTESIAN_PD:
+    if ADD_CARTESIAN_PD == "cart" or ADD_CARTESIAN_PD == "both":
       # Get current Jacobian and foot position in leg frame (see ComputeJacobianAndPosition() in quadruped.py)
       # [TODO] 
       J, p = env.robot.ComputeJacobianAndPosition(i)
@@ -192,13 +193,16 @@ fig, ax = plt.subplots()
 b1 = ax.plot(t,des_foot_pos[0,:], label = 'Desired Foot Position')
 #ax2 = ax.twinx()
 b2 = ax.plot(t,foot_pos[0,:], color= 'tab:orange', label = 'Actual Foot Position')
-if ADD_CARTESIAN_PD:
+if ADD_CARTESIAN_PD == "cart":
   plt.title("Plot comparing the desired foot position vs actual foot position with Cartesian PD", fontsize = 10)
-else:
-  plt.title("Plot comparing the desired foot position vs actual foot position without Cartesian PD", fontsize = 10)
+if ADD_CARTESIAN_PD == "joint":
+  plt.title("Plot comparing the desired foot position vs actual foot position with Joint PD", fontsize = 10)
+if ADD_CARTESIAN_PD == "both":
+  plt.title("Plot comparing the desired foot position vs actual foot position with Joint PD and Cartesian PD", fontsize = 10)
 ax.set_xlabel('Time [s]')
 ax.set_ylabel('Position [m]')
 ax.set_ylim(-0.06, 0.06)
+ax.set_xlim(0, 3)
 
 #lgs = b1+b2
 #labs = [l.get_label() for l in lgs]
