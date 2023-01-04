@@ -75,6 +75,7 @@ r = np.zeros(TEST_STEPS)
 theta = np.zeros(TEST_STEPS)
 foot_pos = np.zeros([3,TEST_STEPS])
 des_foot_pos = np.zeros([1,TEST_STEPS])
+leg_torques = np.zeros((TEST_STEPS,12))
 
 ############## Sample Gains
 # joint PD gains
@@ -136,6 +137,7 @@ for j in range(TEST_STEPS):
   # [TODO] save any CPG or robot states
   cpg_pos_states[j,:,:] = cpg.X 
   cpg_speed_states[j,:,:] = cpg.X_dot
+  leg_torques[j,:] = action
 
 
 ##################################################### 
@@ -160,8 +162,8 @@ for i in range(4):
 
   ax2=ax[i][0].twinx()
   ax2_1=ax[i][1].twinx()
-  ax2.set_ylabel('Phase [rad]')
-  ax2_1.set_ylabel('Phase speed [rad/s]', fontsize = 15)
+  ax2.set_ylabel('Phase [rad]', color='tab:orange')
+  ax2_1.set_ylabel('Phase speed [rad/s]', color='tab:orange')
   a2 = ax2.plot(t, cpg_pos_states[:, 1, i], color='tab:orange', label='theta')
   a4 = ax2_1.plot(t, cpg_speed_states[:, 1, i], color= 'tab:orange', label='theta_dot')
   
@@ -169,8 +171,8 @@ for i in range(4):
   ax[i][1].set_xlim(0, 0.7)
   ax[i][0].set_xlabel('Time [s]')
   ax[i][1].set_xlabel('Time [s]')
-  ax[i][0].set_ylabel('Amplitude')
-  ax[i][1].set_ylabel('Amplitude speed')
+  ax[i][0].set_ylabel('Amplitude', color='tab:blue')
+  ax[i][1].set_ylabel('Amplitude speed', color='tab:blue')
 
 fig.suptitle("CPG states for trot gait", fontweight ="bold", fontsize = 15)
 #ax[0, 0].set_title("CPG Position States for each leg (FR, FL, RR, RL)", fontsize = 8)
@@ -208,4 +210,26 @@ ax.set_xlim(0, 3)
 #labs = [l.get_label() for l in lgs]
 #ax.legend(lgs, labs, loc="upper right")
 plt.legend([b1, b2], labels=["Desired foot position", "Actual foot position"],  loc="upper right")
+plt.show()
+
+# TORQUE PLOTS WITH AND WITHOUT CARTESIAN PD
+#fig = plt.figure()
+fig, ax = plt.subplots()
+#b1 = ax.plot(t, leg_torques[:,0:3], label = 'Desired Foot Position')
+#ax2 = ax.twinx()
+c1 = ax.plot(t, leg_torques[:,1])
+c2 = ax.plot(t, leg_torques[:,2])
+#c3 = ax.plot(t, leg_torques[:,2])
+if ADD_CARTESIAN_PD == "cart":
+  plt.title("Thigh and calf torques with Cartesian PD", fontsize = 10)
+if ADD_CARTESIAN_PD == "joint":
+  plt.title("Thigh and calf torques with Joint PD", fontsize = 10)
+if ADD_CARTESIAN_PD == "both":
+  plt.title("Thigh and calf torques with Joint PD and Cartesian PD", fontsize = 10)
+ax.set_xlabel('Time [s]')
+ax.set_ylabel('Amplitude')
+#ax.set_ylim(-0.06, 0.06)
+ax.set_xlim(0, 0.3)
+
+plt.legend([c1, c2], labels=["torque on thigh", "torque on calf"],  loc="upper right")  
 plt.show()
