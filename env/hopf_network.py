@@ -158,15 +158,9 @@ class HopfNetwork():
     # loop through each leg's oscillator
     for i in range(4):
       if np.sin(self.X[1,i])>0:
-        if not self.move_reverse:
-          z[i] = -self._robot_height + self._ground_clearance*np.sin(self.X[1,i])
-        else:
-          z[i] = -self._robot_height + self._ground_clearance*np.sin(self.X[1,i])
+        z[i] = -self._robot_height + self._ground_clearance*np.sin(self.X[1,i])
       else:
-        if not self.move_reverse:
-          z[i] = -self._robot_height + self._ground_penetration*np.sin(self.X[1,i])
-        else:
-          z[i] = -self._robot_height + self._ground_penetration*np.sin(self.X[1,i])
+        z[i] = -self._robot_height + self._ground_penetration*np.sin(self.X[1,i])
 
     # scale x by step length
     if not self.use_RL:
