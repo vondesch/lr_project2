@@ -104,8 +104,6 @@ class HopfNetwork():
     self.w = coupling_strength*np.ones((4,4))
 
 
-
-
   def _set_gait(self,gait):
     """ For coupling oscillators in phase space. 
     [TODO] update all coupling matrices
@@ -259,7 +257,7 @@ class HopfNetwork():
       if not self.move_reverse:
         theta_dot = self._omega_rl[i] + np.sum(X[0,:]*self.w[i,:]*np.sin(X[1,:]-theta-self.PHI[i,:]))  # [TODO]
       else:
-        theta_dot = self._omega_rl[i] + np.sum(X[0,:]*self.w[i,:]*np.sin(X[1,:]-theta-self.PHI[i,:]))  # [TODO]
+        theta_dot = self._omega_rl[i] - np.sum(X[0,:]*self.w[i,:]*np.sin(X[1,:]-theta-self.PHI[i,:]))  # [TODO]
 
       X_dot[:,i] = [r_dot, theta_dot]
 

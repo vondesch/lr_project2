@@ -19,3 +19,7 @@ observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.696533694
                                          np.array([ 0, ] * self._robot_config.NUM_LEGS),
                                          np.array([ 0 ] * self._robot_config.NUM_LEGS),
                                          np.array([-1.0]*4))) -  OBSERVATION_EPS)
+
+it walks with some struggle, but straight, with the correct speed
+best try Final base position (7.872869394424687, 0.1106547197153421, 0.3215295843718514)
+take this one for the forward report model.
