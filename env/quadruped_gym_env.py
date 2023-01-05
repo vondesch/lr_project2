@@ -105,7 +105,7 @@ class QuadrupedGymEnv(gym.Env):
       action_repeat=10,  
       distance_weight=2,
       energy_weight=0.008,
-      motor_control_mode="CPG",
+      motor_control_mode="PD",
       task_env="FWD_LOCOMOTION",
       observation_space_mode="LR_COURSE_OBS",
       on_rack=False,
@@ -239,7 +239,7 @@ class QuadrupedGymEnv(gym.Env):
                                           np.array([1.0]*4))) +  OBSERVATION_EPS) # limit on orientation
         observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), # joint limit
                                           -self._robot_config.VELOCITY_LIMITS,
-                                          np.array([2]* self._robot_config.NUM_LEGS),
+                                          np.array([0]* self._robot_config.NUM_LEGS),
                                           np.array([-0.15,-0.2,-0.3]),
                                           np.array([-1.0]*4))) -  OBSERVATION_EPS)
 
@@ -251,7 +251,7 @@ class QuadrupedGymEnv(gym.Env):
                                           np.array([1.0]*4))) +  OBSERVATION_EPS) # limit on orientation
         observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), # joint limit
                                           -self._robot_config.VELOCITY_LIMITS,
-                                          np.array([2]* self._robot_config.NUM_LEGS),
+                                          np.array([0]* self._robot_config.NUM_LEGS),
                                           np.array([-0.15,-0.2,-0.3]),
                                           np.array([-1.0]*4))) -  OBSERVATION_EPS)
 
@@ -263,14 +263,14 @@ class QuadrupedGymEnv(gym.Env):
                                           np.array([1.0]*4))) +  OBSERVATION_EPS) # limit on orientation
         observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), # joint limit
                                           -self._robot_config.VELOCITY_LIMITS,
-                                          np.array([2]* self._robot_config.NUM_LEGS),
+                                          np.array([0]* self._robot_config.NUM_LEGS),
                                           np.array([-0.15,-0.2,-0.3]),
                                           np.array([-1.0]*4))) -  OBSERVATION_EPS)
 
       elif self._motor_control_mode in ["OLD_CPG", "OLD_CARTESIAN_PD", "OLD_PD", "OLD_TORQUE"]:
         observation_high = (np.concatenate((np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
                                          self._robot_config.VELOCITY_LIMITS,
-                                         np.array([ 2 ] * self._robot_config.NUM_LEGS),
+                                         np.array([ 1 ] * self._robot_config.NUM_LEGS),
                                          np.array([ 2*np.pi ] * self._robot_config.NUM_LEGS),
                                          np.array([1.0]*4))) +  OBSERVATION_EPS)
         observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), # joint limit
@@ -406,7 +406,7 @@ class QuadrupedGymEnv(gym.Env):
     return max(reward,0) # keep rewards positive
 
 
-  def _reward_lr_course(self, des_vel_x=-0.6):
+  def _reward_lr_course(self, des_vel_x=0.6):
     """ Implement your reward function here. How will you improve upon the above? """
     # [TODO] add your reward function. 
     # track the desired velocity 
