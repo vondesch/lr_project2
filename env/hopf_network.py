@@ -56,10 +56,10 @@ class HopfNetwork():
                 coupling_strength=1,     # coefficient to multiply coupling matrix
                 couple=True,             # whether oscillators should be coupled
                 time_step=0.001,         # time step 
-                ground_clearance=0.07,   # foot swing height          instead of 0.07
+                ground_clearance=0.045,   # foot swing height          instead of 0.07
                 ground_penetration=0.01, # foot stance penetration into ground 
-                robot_height=0.3,        # in nominal case (standing) 
-                des_step_len=0.05,       # desired step length 
+                robot_height=0.22,        # in nominal case (standing) 
+                des_step_len=0.058,       # desired step length 
                 max_step_len_rl=0.1,     # max step length, for RL scaling 
                 use_RL=False,            # whether to learn parameters with RL
                 move_reverse=False       # wheater to walk backwards
@@ -158,9 +158,15 @@ class HopfNetwork():
     # loop through each leg's oscillator
     for i in range(4):
       if np.sin(self.X[1,i])>0:
-        z[i] = -self._robot_height + self._ground_clearance*np.sin(self.X[1,i])
+        if not self.move_reverse:
+          z[i] = -self._robot_height + self._ground_clearance*np.sin(self.X[1,i])
+        else:
+          z[i] = -self._robot_height + self._ground_clearance*np.sin(self.X[1,i])
       else:
-        z[i] = -self._robot_height + self._ground_penetration*np.sin(self.X[1,i])
+        if not self.move_reverse:
+          z[i] = -self._robot_height + self._ground_penetration*np.sin(self.X[1,i])
+        else:
+          z[i] = -self._robot_height + self._ground_penetration*np.sin(self.X[1,i])
 
     # scale x by step length
     if not self.use_RL:

@@ -112,7 +112,7 @@ class QuadrupedGymEnv(gym.Env):
       render=False,
       record_video=False,
       add_noise=False,
-      test_env=False,
+      test_env=True,
       move_reverse=False,
       competition_env=False, # NOT ALLOWED FOR TRAINING!
       **kwargs): # any extra arguments from legacy

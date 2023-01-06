@@ -46,7 +46,7 @@ from env.hopf_network import HopfNetwork
 from env.quadruped_gym_env import QuadrupedGymEnv
 
 
-ADD_CARTESIAN_PD = "joint"
+ADD_CARTESIAN_PD = "both"
 TIME_STEP = 0.001
 foot_y = 0.0838 # this is the hip length 
 sideSign = np.array([-1, 1, -1, 1]) # get correct hip sign (body right is negative)
@@ -58,12 +58,12 @@ env = QuadrupedGymEnv(render=True,              # visualize
                     action_repeat=1,
                     motor_control_mode="CPG",
                     add_noise=False,    # start in ideal conditions
-                    move_reverse=False
-                    # record_video=True
+                    move_reverse=False,
+                    record_video=True
                     )
 
 # initialize Hopf Network, supply gait
-cpg = HopfNetwork(time_step=TIME_STEP, omega_swing= -6*2*np.pi, omega_stance= -1.5*2*np.pi)
+cpg = HopfNetwork(time_step=TIME_STEP, omega_swing= 16*2*np.pi, omega_stance= 4*2*np.pi)
 
 TEST_STEPS = int(10 / (TIME_STEP))
 t = np.arange(TEST_STEPS)*TIME_STEP
@@ -85,10 +85,10 @@ mean_velocity = 0
 
 ############## Sample Gains
 # joint PD gains
-kp=np.array([480]*3)
-kd=np.array([6]*3)
+kp=np.array([480,480,480])
+kd=np.array([6,6,6])
 # Cartesian PD gains
-kpCartesian = np.diag([8000, 5000, 10000])
+kpCartesian = np.diag([8000]*3)
 kdCartesian = np.diag([90]*3)
 
 init_pos = env.robot.GetBasePosition()[0:2]
@@ -219,15 +219,15 @@ b1 = ax.plot(t,des_foot_pos[0,:], label = 'Desired Foot Position')
 #ax2 = ax.twinx()
 b2 = ax.plot(t,foot_pos[0,:], color= 'tab:orange', label = 'Actual Foot Position')
 if ADD_CARTESIAN_PD == "cart":
-  plt.title("Plot comparing the desired foot position vs actual foot position with Cartesian PD", fontweight ="bold", fontsize = 10)
+  plt.title("Comparing the desired foot position vs actual foot position with Cartesian PD", fontweight ="bold", fontsize = 15)
 if ADD_CARTESIAN_PD == "joint":
-  plt.title("Plot comparing the desired foot position vs actual foot position with Joint PD", fontweight ="bold", fontsize = 10)
+  plt.title("Comparing the desired foot position vs actual foot position with Joint PD", fontweight ="bold", fontsize = 15)
 if ADD_CARTESIAN_PD == "both":
-  plt.title("Plot comparing the desired foot position vs actual foot position with Joint PD and Cartesian PD", fontweight ="bold", fontsize = 15)
-ax.set_xlabel('Time [s]', fontsize = 15)
-ax.set_ylabel('Position [m]', fontsize = 15)
+  plt.title("Comparing the desired foot position vs actual foot position with Joint PD and Cartesian PD", fontweight ="bold", fontsize = 15)
+ax.set_xlabel('Time [s]', fontsize = 18)
+ax.set_ylabel('Position [m]', fontsize = 18)
 ax.set_ylim(-0.06, 0.06)
-ax.set_xlim(6, 9)
+ax.set_xlim(0, 3)
 
 #lgs = b1+b2
 #labs = [l.get_label() for l in lgs]
@@ -249,10 +249,10 @@ if ADD_CARTESIAN_PD == "joint":
   plt.title("Hip, thigh and calf torques with Joint PD", fontweight ="bold", fontsize = 15)
 if ADD_CARTESIAN_PD == "both":
   plt.title("Hip, thigh and calf torques with Joint PD and Cartesian PD", fontweight ="bold", fontsize = 15)
-ax.set_xlabel('Time [s]', fontsize = 15)
-ax.set_ylabel('Amplitude', fontsize = 15)
-#ax.set_ylim(-0.06, 0.06)
-ax.set_xlim(8, 8.3)
+ax.set_xlabel('Time [s]', fontsize = 18)
+ax.set_ylabel('Amplitude', fontsize = 18)
+ax.set_ylim(-20, 50)
+ax.set_xlim(0, 0.3)
 
 plt.legend([c1, c2, c3], labels=["torque on hip", "torque on thigh", "torque on calf"], fontsize = 15,  loc="upper right")  
 plt.show()
