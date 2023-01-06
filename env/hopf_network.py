@@ -62,7 +62,7 @@ class HopfNetwork():
                 des_step_len=0.058,       # desired step length 
                 max_step_len_rl=0.1,     # max step length, for RL scaling 
                 use_RL=False,            # whether to learn parameters with RL
-                move_reverse=False       # wheater to walk backwards
+                move_reverse=True       # wheater to walk backwards
                 ):
     
     ###############
@@ -194,7 +194,7 @@ class HopfNetwork():
       r_dot = self._alpha*(self._mu-r**2)*r # [TODO]
       # determine whether oscillator i is in swing or stance phase to set natural frequency omega_swing or omega_stance (see Section 3)
       theta = theta%(2*np.pi)
-      if theta >= 0 and theta <= np.pi :
+      if theta >= 0 or theta <= np.pi :
         omega = self._omega_swing
       else:
         omega = self._omega_stance
