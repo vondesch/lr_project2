@@ -46,12 +46,12 @@ from env.hopf_network import HopfNetwork
 from env.quadruped_gym_env import QuadrupedGymEnv
 
 
-ADD_CARTESIAN_PD = "both"
+ADD_CARTESIAN_PD = "joint"
 TIME_STEP = 0.001
 foot_y = 0.0838 # this is the hip length 
 sideSign = np.array([-1, 1, -1, 1]) # get correct hip sign (body right is negative)
 
-env = QuadrupedGymEnv(render=False,              # visualize
+env = QuadrupedGymEnv(render=False,             # visualize
                     on_rack=False,              # useful for debugging! 
                     isRLGymInterface=False,     # not using RL
                     time_step=TIME_STEP,
@@ -77,6 +77,12 @@ foot_pos = np.zeros([3,TEST_STEPS])
 des_foot_pos = np.zeros([1,TEST_STEPS])
 leg_torques = np.zeros((TEST_STEPS,12))
 
+energy = np.zeros(TEST_STEPS)
+total_dist_travelled = 0
+previous_pos = [0,0]
+total_distance = 0
+mean_velocity = 0
+
 ############## Sample Gains
 # joint PD gains
 kp=np.array([480,480,480])
@@ -84,6 +90,8 @@ kd=np.array([6,6,6])
 # Cartesian PD gains
 kpCartesian = np.diag([8000]*3)
 kdCartesian = np.diag([90]*3)
+
+init_pos = env.robot.GetBasePosition()[0:2]
 
 for j in range(TEST_STEPS):
   # initialize torque array to send to motors
@@ -118,18 +126,25 @@ for j in range(TEST_STEPS):
       J, p = env.robot.ComputeJacobianAndPosition(i)
       # Get current foot velocity in leg frame (Equation 2)
       # [TODO] 
-      v = J @ dq[i*3:i*3+3]
+      v  = J @ dq[i*3:i*3+3]
       des_v = J @ des_joint_vel
       # Calculate torque contribution from Cartesian PD (Equation 5) [Make sure you are using matrix multiplications]
       # tau += np.zeros(3) # [TODO]
       tau += np.transpose(J) @ (kpCartesian@(leg_xyz-p) + kdCartesian@(des_v - v))
 
+    # calculate sum of energy in all joints for each time step
+    energy[i] += np.abs(np.dot(tau,dq[i*3:i*3+3])) * TIME_STEP 
+    #if (i==0 and j == 0):
+    #  print(np.abs(np.dot(tau,v)) * TIME_STEP )
     # Set tau for legi in action vector
     action[3*i:3*i+3] = tau
 
     # fill the matrices for the plots
     foot_pos[:,j] = env.robot.ComputeJacobianAndPosition(0)[1]
     des_foot_pos[:,j] = xs[0]
+
+  total_distance +=  np.linalg.norm(np.subtract(env.robot.GetBasePosition()[0:2], previous_pos))  
+  previous_pos = env.robot.GetBasePosition()[0:2]
 
   # send torques to robot and simulate TIME_STEP seconds 
   env.step(action)
@@ -143,7 +158,15 @@ for j in range(TEST_STEPS):
 ##################################################### 
 # PLOTS
 #####################################################
+final_pos = env.robot.GetBasePosition()[0:2]
+#print(np.subtract(final_pos, init_pos))
+total_dist_travelled = np.linalg.norm(np.subtract(final_pos, init_pos))
+print(total_dist_travelled)
+COT = sum(energy)/(13*9.81*total_dist_travelled)  #sum(self._total_mass_urdf)  #summing the masses from URDF file.
+print(COT)
 
+mean_velocity = total_distance/((10 / (TIME_STEP))*TIME_STEP)
+print(mean_velocity)
 
 
 fig, ax = plt.subplots(4, 2)
@@ -196,20 +219,20 @@ b1 = ax.plot(t,des_foot_pos[0,:], label = 'Desired Foot Position')
 #ax2 = ax.twinx()
 b2 = ax.plot(t,foot_pos[0,:], color= 'tab:orange', label = 'Actual Foot Position')
 if ADD_CARTESIAN_PD == "cart":
-  plt.title("Plot comparing the desired foot position vs actual foot position with Cartesian PD", fontsize = 10)
+  plt.title("Plot comparing the desired foot position vs actual foot position with Cartesian PD", fontweight ="bold", fontsize = 10)
 if ADD_CARTESIAN_PD == "joint":
-  plt.title("Plot comparing the desired foot position vs actual foot position with Joint PD", fontsize = 10)
+  plt.title("Plot comparing the desired foot position vs actual foot position with Joint PD", fontweight ="bold", fontsize = 10)
 if ADD_CARTESIAN_PD == "both":
-  plt.title("Plot comparing the desired foot position vs actual foot position with Joint PD and Cartesian PD", fontsize = 10)
-ax.set_xlabel('Time [s]')
-ax.set_ylabel('Position [m]')
+  plt.title("Plot comparing the desired foot position vs actual foot position with Joint PD and Cartesian PD", fontweight ="bold", fontsize = 15)
+ax.set_xlabel('Time [s]', fontsize = 15)
+ax.set_ylabel('Position [m]', fontsize = 15)
 ax.set_ylim(-0.06, 0.06)
-ax.set_xlim(0, 3)
+ax.set_xlim(6, 9)
 
 #lgs = b1+b2
 #labs = [l.get_label() for l in lgs]
 #ax.legend(lgs, labs, loc="upper right")
-plt.legend([b1, b2], labels=["Desired foot position", "Actual foot position"],  loc="upper right")
+plt.legend([b1, b2], labels=["Desired foot position", "Actual foot position"], fontsize = 15,  loc="upper right")
 plt.show()
 
 # TORQUE PLOTS WITH AND WITHOUT CARTESIAN PD
@@ -217,19 +240,19 @@ plt.show()
 fig, ax = plt.subplots()
 #b1 = ax.plot(t, leg_torques[:,0:3], label = 'Desired Foot Position')
 #ax2 = ax.twinx()
-c1 = ax.plot(t, leg_torques[:,1])
-c2 = ax.plot(t, leg_torques[:,2])
-#c3 = ax.plot(t, leg_torques[:,2])
+c1 = ax.plot(t, leg_torques[:,0])
+c2 = ax.plot(t, leg_torques[:,1])
+c3 = ax.plot(t, leg_torques[:,2])
 if ADD_CARTESIAN_PD == "cart":
-  plt.title("Thigh and calf torques with Cartesian PD", fontsize = 10)
+  plt.title("Hip, thigh and calf torques with Cartesian PD", fontweight ="bold", fontsize = 15)
 if ADD_CARTESIAN_PD == "joint":
-  plt.title("Thigh and calf torques with Joint PD", fontsize = 10)
+  plt.title("Hip, thigh and calf torques with Joint PD", fontweight ="bold", fontsize = 15)
 if ADD_CARTESIAN_PD == "both":
-  plt.title("Thigh and calf torques with Joint PD and Cartesian PD", fontsize = 10)
-ax.set_xlabel('Time [s]')
-ax.set_ylabel('Amplitude')
+  plt.title("Hip, thigh and calf torques with Joint PD and Cartesian PD", fontweight ="bold", fontsize = 15)
+ax.set_xlabel('Time [s]', fontsize = 15)
+ax.set_ylabel('Amplitude', fontsize = 15)
 #ax.set_ylim(-0.06, 0.06)
-ax.set_xlim(0, 0.3)
+ax.set_xlim(8, 8.3)
 
-plt.legend([c1, c2], labels=["torque on thigh", "torque on calf"],  loc="upper right")  
+plt.legend([c1, c2, c3], labels=["torque on hip", "torque on thigh", "torque on calf"], fontsize = 15,  loc="upper right")  
 plt.show()

@@ -111,7 +111,7 @@ class QuadrupedGymEnv(gym.Env):
       on_rack=False,
       render=False,
       record_video=False,
-      add_noise=True,
+      add_noise=False,
       test_env=False,
       move_reverse=False,
       competition_env=False, # NOT ALLOWED FOR TRAINING!
@@ -419,7 +419,7 @@ class QuadrupedGymEnv(gym.Env):
     energy_reward = 0 
     for tau,vel in zip(self._dt_motor_torques,self._dt_motor_velocities):
       energy_reward += np.abs(np.dot(tau,vel)) * self._time_step
-
+  
     reward = 4*vel_tracking_reward \
             + 2*yaw_reward \
             + roll_reward \
@@ -427,7 +427,7 @@ class QuadrupedGymEnv(gym.Env):
             #- 0.01 * energy_reward \
             #- 0.1 * np.linalg.norm(self.robot.GetBaseOrientation() - np.array([0,0,0,1]))
     print(4*vel_tracking_reward, 2*yaw_reward, roll_reward, drift_reward)
-
+  
     return max(reward,0) # keep rewards positive
 
 
