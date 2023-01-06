@@ -87,7 +87,7 @@ MAX_FWD_VELOCITY = 1  # to avoid exploiting simulator dynamics, cap max reward f
 
 # CPG quantities
 MU_LOW = 1
-MU_UPP = 2
+MU_UPP = 3
 
 
 class QuadrupedGymEnv(gym.Env):
@@ -111,10 +111,10 @@ class QuadrupedGymEnv(gym.Env):
       on_rack=False,
       render=False,
       record_video=False,
-      add_noise=True,
+      add_noise=False,
       test_env=False,
-      move_reverse=False,
       competition_env=False, # NOT ALLOWED FOR TRAINING!
+      move_reverse=False,
       **kwargs): # any extra arguments from legacy
     """Initialize the quadruped gym environment.
 
@@ -256,12 +256,14 @@ class QuadrupedGymEnv(gym.Env):
       elif self._motor_control_mode == "TORQUE":
         observation_high = (np.concatenate((np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
                                           self._robot_config.VELOCITY_LIMITS, # limit on velocity
-                                          # np.array([4]* self._robot_config.NUM_LEGS), # limit on nb leg touching the floor
+                                          self._robot_config.TORQUE_LIMITS,
+                                          np.array([1]* self._robot_config.NUM_LEGS), # limit on nb leg touching the floor
                                           np.array([0.15,0.2,0.3]),
                                           np.array([1.0]*4))) +  OBSERVATION_EPS) # limit on orientation
         observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), # joint limit
                                           -self._robot_config.VELOCITY_LIMITS,
-                                          # np.array([0]* self._robot_config.NUM_LEGS),
+                                          -self._robot_config.TORQUE_LIMITS,
+                                          np.array([3]* self._robot_config.NUM_LEGS),
                                           np.array([-0.15,-0.2,-0.3]),
                                           np.array([-1.0]*4))) -  OBSERVATION_EPS)
 
@@ -336,7 +338,7 @@ class QuadrupedGymEnv(gym.Env):
       elif self._motor_control_mode == "TORQUE":
         self._observation = np.concatenate((self.robot.GetMotorAngles(), 
                                             self.robot.GetMotorVelocities(),
-                                            # self.robot.GetContactInfo()[3],
+                                            self.robot.GetContactInfo()[3],
                                             self.robot.GetBaseOrientationRollPitchYaw(),
                                             self.robot.GetBaseOrientation() ))
 
@@ -425,14 +427,14 @@ class QuadrupedGymEnv(gym.Env):
     energy_reward = 0 
     for tau,vel in zip(self._dt_motor_torques,self._dt_motor_velocities):
       energy_reward += np.abs(np.dot(tau,vel)) * self._time_step
-
-    reward = vel_tracking_reward \
-            + yaw_reward \
+  
+    reward = 4*vel_tracking_reward \
+            + 2*yaw_reward \
             + roll_reward \
             + drift_reward \
-            # - 0.01 * energy_reward \
-            # - 0.1 * np.linalg.norm(self.robot.GetBaseOrientation() - np.array([0,0,0,1]))
-    # print(4*vel_tracking_reward, 2*yaw_reward, roll_reward, drift_reward)
+            - 0.01 * energy_reward \
+            - 0.1 * np.linalg.norm(self.robot.GetBaseOrientation() - np.array([0,0,0,1]))
+    #print(4*vel_tracking_reward, 2*yaw_reward, roll_reward, drift_reward)
 
     return max(reward,0) # keep rewards positive
 
@@ -460,6 +462,8 @@ class QuadrupedGymEnv(gym.Env):
       action = self.ScaleActionToCartesianPos(action)
     elif self._motor_control_mode in ["CPG", "OLD_CPG"]:
       action = self.ScaleActionToCPGStateModulations(action)
+    elif self._motor_control_mode in ["TORQUE", "OLD_TORQUE"]:
+      None
     else:
       raise ValueError("RL motor control mode" + self._motor_control_mode + "not implemented yet.")
     return action
@@ -511,7 +515,10 @@ class QuadrupedGymEnv(gym.Env):
     u = np.clip(actions,-1,1)
 
     # scale omega to ranges, and set in CPG (range is an example)
-    omega = self._scale_helper( u[0:4], -7*2*np.pi, -2*np.pi)
+    if not self.move_reverse:
+      omega = self._scale_helper( u[0:4], 2*np.pi, 7*2*np.pi)
+    else:
+      omega = self._scale_helper( u[0:4], -7*2*np.pi, -2*np.pi)
     self._cpg.set_omega_rl(omega)
 
     # scale mu to ranges, and set in CPG (squared since we converge to the sqrt in the CPG amplitude)

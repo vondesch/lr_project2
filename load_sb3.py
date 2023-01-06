@@ -56,7 +56,7 @@ from utils.utils import plot_results
 from utils.file_utils import get_latest_model, load_all_results
 
 
-LEARNING_ALG = "PPO"
+LEARNING_ALG = "SAC"
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 interm_dir = FILE_PATH + "/logs/intermediate_models/"
 log_dir = interm_dir + '010223140459'
@@ -132,24 +132,26 @@ for i in range(NUM_STEPS):
     
     
 # [TODO] make plots:
-"""
+start_idx = 0
+end_idx = 1500
+
 fig, ax = plt.subplots()
 ax2 = ax.twinx()
 ax.set_xlabel("time")
-ax.plot(t, XYZ_base[0,:], color="red")
-ax2.plot(t, XYZ_base[1,:], color="blue")
+ax.plot(t[start_idx:end_idx], XYZ_base[0,start_idx:end_idx], color="red")
+ax2.plot(t[start_idx:end_idx], XYZ_base[1,start_idx:end_idx], color="blue")
 ax.set_ylabel("base x position [m]")
 ax.legend(["x"])
 ax2.set_ylabel("base y position [m]")
 ax2.legend(["y"], loc="upper center")
 plt.show()
-"""
+
 
 fig, ax = plt.subplots()
 ax2 = ax.twinx()
 ax.set_xlabel("time [s]")
-ax.plot(t[0:1800], CPG_r[0,0:1800], color="red")
-ax2.plot(t[0:1800], CPG_theta[0,0:1800], color="blue")
+ax.plot(t[start_idx:end_idx], CPG_r[0,start_idx:end_idx], color="red")
+ax2.plot(t[start_idx:end_idx], CPG_theta[0,start_idx:end_idx], color="blue")
 ax.set_ylabel("Amplitude r")
 ax.legend(["r"])
 ax2.set_ylabel("Phase theta [rad]")

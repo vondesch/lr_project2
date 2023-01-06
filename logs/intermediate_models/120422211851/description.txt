@@ -2,6 +2,7 @@ desired velocity 0.8
 control method PD
 gait mode pace
 learning algo PPO
+move_reverse false
 
 reward = 2*vel_tracking_reward \
             + 2*yaw_reward \
