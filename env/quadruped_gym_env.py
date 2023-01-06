@@ -272,14 +272,12 @@ class QuadrupedGymEnv(gym.Env):
                                           self._robot_config.VELOCITY_LIMITS, # limit on velocity
                                           np.array([ 5 ] * self._robot_config.NUM_LEGS), # limit on r (CPG)
                                           np.array([ 2*np.pi ] * self._robot_config.NUM_LEGS), # limit on theta (CPG)
-                                          np.array([1]* self._robot_config.NUM_LEGS), # limit on nb leg tuching the floor
                                           np.array([0.15,0.2,0.3]),
                                           np.array([1.0]*4))) +  OBSERVATION_EPS) # limit on orientation
         observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), # joint limit
                                           -self._robot_config.VELOCITY_LIMITS,
                                           np.array([ 0 ] * self._robot_config.NUM_LEGS),
                                           np.array([ 0 ] * self._robot_config.NUM_LEGS),
-                                          np.array([2]* self._robot_config.NUM_LEGS),
                                           np.array([-0.15,-0.2,-0.3]),
                                           np.array([-1.0]*4))) -  OBSERVATION_EPS)
 
@@ -346,8 +344,7 @@ class QuadrupedGymEnv(gym.Env):
         self._observation = np.concatenate((self.robot.GetMotorAngles(), 
                                             self.robot.GetMotorVelocities(),
                                             self._cpg.get_r(),
-                                            self._cpg.get_theta(),
-                                            self.robot.GetContactInfo()[3],
+                                            self._cpg.get_theta(), # dr dtheta
                                             self.robot.GetBaseOrientationRollPitchYaw(),
                                             self.robot.GetBaseOrientation() ))
       else:
@@ -412,7 +409,7 @@ class QuadrupedGymEnv(gym.Env):
     return max(reward,0) # keep rewards positive
 
 
-  def _reward_lr_course(self, des_vel_x=-0.6):
+  def _reward_lr_course(self, des_vel_x=-1.0):
     """ Implement your reward function here. How will you improve upon the above? """
     # [TODO] add your reward function. 
     # track the desired velocity 
@@ -431,9 +428,9 @@ class QuadrupedGymEnv(gym.Env):
     reward = 4*vel_tracking_reward \
             + 2*yaw_reward \
             + roll_reward \
-            + drift_reward \
-            - 0.01 * energy_reward \
-            - 0.1 * np.linalg.norm(self.robot.GetBaseOrientation() - np.array([0,0,0,1]))
+            + drift_reward #\
+            #- 0.01 * energy_reward \
+            #- 0.1 * np.linalg.norm(self.robot.GetBaseOrientation() - np.array([0,0,0,1]))
     #print(4*vel_tracking_reward, 2*yaw_reward, roll_reward, drift_reward)
 
     return max(reward,0) # keep rewards positive

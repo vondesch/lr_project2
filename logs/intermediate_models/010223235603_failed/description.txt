@@ -1,6 +1,6 @@
 learning alg SAC
 desired velocity: -1 m/s
-gait mode: pace
+gait mode: trot
 motor control mode CPG
 move reverse True
 
