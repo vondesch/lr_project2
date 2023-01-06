@@ -105,7 +105,7 @@ class QuadrupedGymEnv(gym.Env):
       action_repeat=1,  
       distance_weight=2,
       energy_weight=0.008,
-      motor_control_mode="PD",
+      motor_control_mode="CPG",
       task_env="FWD_LOCOMOTION",
       observation_space_mode="LR_COURSE_OBS",
       on_rack=False,
@@ -244,7 +244,7 @@ class QuadrupedGymEnv(gym.Env):
       elif self._motor_control_mode == "CARTESIAN_PD":
         observation_high = (np.concatenate((np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
                                           self._robot_config.VELOCITY_LIMITS, # limit on velocity
-                                          np.array([1]* self._robot_config.NUM_LEGS), # limit on nb leg touching the floor
+                                          np.array([4]* self._robot_config.NUM_LEGS), # limit on nb leg touching the floor
                                           np.array([0.15,0.2,0.3]), # roll pitch yaw
                                           np.array([1.0]*4))) +  OBSERVATION_EPS) # limit on orientation
         observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), # joint limit
@@ -256,26 +256,30 @@ class QuadrupedGymEnv(gym.Env):
       elif self._motor_control_mode == "TORQUE":
         observation_high = (np.concatenate((np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
                                           self._robot_config.VELOCITY_LIMITS, # limit on velocity
-                                          np.array([1]* self._robot_config.NUM_LEGS), # limit on nb leg touching the floor
+                                          # np.array([4]* self._robot_config.NUM_LEGS), # limit on nb leg touching the floor
                                           np.array([0.15,0.2,0.3]),
                                           np.array([1.0]*4))) +  OBSERVATION_EPS) # limit on orientation
         observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), # joint limit
                                           -self._robot_config.VELOCITY_LIMITS,
-                                          np.array([0]* self._robot_config.NUM_LEGS),
+                                          # np.array([0]* self._robot_config.NUM_LEGS),
                                           np.array([-0.15,-0.2,-0.3]),
                                           np.array([-1.0]*4))) -  OBSERVATION_EPS)
 
       elif self._motor_control_mode in ["OLD_CPG", "OLD_CARTESIAN_PD", "OLD_PD", "OLD_TORQUE"]:
         observation_high = (np.concatenate((np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
-                                         self._robot_config.VELOCITY_LIMITS,
-                                         np.array([ 1 ] * self._robot_config.NUM_LEGS),
-                                         np.array([ 2*np.pi ] * self._robot_config.NUM_LEGS),
-                                         np.array([1.0]*4))) +  OBSERVATION_EPS)
+                                          self._robot_config.VELOCITY_LIMITS, # limit on velocity
+                                          np.array([ 5 ] * self._robot_config.NUM_LEGS), # limit on r (CPG)
+                                          np.array([ 2*np.pi ] * self._robot_config.NUM_LEGS), # limit on theta (CPG)
+                                          np.array([1]* self._robot_config.NUM_LEGS), # limit on nb leg tuching the floor
+                                          np.array([0.15,0.2,0.3]),
+                                          np.array([1.0]*4))) +  OBSERVATION_EPS) # limit on orientation
         observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), # joint limit
-                                         -self._robot_config.VELOCITY_LIMITS/1.5,
-                                         np.array([ 0, ] * self._robot_config.NUM_LEGS),
-                                         np.array([ 0 ] * self._robot_config.NUM_LEGS),
-                                         np.array([-1.0]*4))) -  OBSERVATION_EPS)
+                                          -self._robot_config.VELOCITY_LIMITS,
+                                          np.array([ 0 ] * self._robot_config.NUM_LEGS),
+                                          np.array([ 0 ] * self._robot_config.NUM_LEGS),
+                                          np.array([2]* self._robot_config.NUM_LEGS),
+                                          np.array([-0.15,-0.2,-0.3]),
+                                          np.array([-1.0]*4))) -  OBSERVATION_EPS)
 
       else:
         raise ValueError("Motor control mode does not exist")    
@@ -332,7 +336,7 @@ class QuadrupedGymEnv(gym.Env):
       elif self._motor_control_mode == "TORQUE":
         self._observation = np.concatenate((self.robot.GetMotorAngles(), 
                                             self.robot.GetMotorVelocities(),
-                                            self.robot.GetContactInfo()[3],
+                                            # self.robot.GetContactInfo()[3],
                                             self.robot.GetBaseOrientationRollPitchYaw(),
                                             self.robot.GetBaseOrientation() ))
 
@@ -341,6 +345,8 @@ class QuadrupedGymEnv(gym.Env):
                                             self.robot.GetMotorVelocities(),
                                             self._cpg.get_r(),
                                             self._cpg.get_theta(),
+                                            self.robot.GetContactInfo()[3],
+                                            self.robot.GetBaseOrientationRollPitchYaw(),
                                             self.robot.GetBaseOrientation() ))
       else:
         raise ValueError("Motor control mode is wrong")
@@ -404,7 +410,7 @@ class QuadrupedGymEnv(gym.Env):
     return max(reward,0) # keep rewards positive
 
 
-  def _reward_lr_course(self, des_vel_x=0.6):
+  def _reward_lr_course(self, des_vel_x=-0.6):
     """ Implement your reward function here. How will you improve upon the above? """
     # [TODO] add your reward function. 
     # track the desired velocity 
@@ -420,13 +426,13 @@ class QuadrupedGymEnv(gym.Env):
     for tau,vel in zip(self._dt_motor_torques,self._dt_motor_velocities):
       energy_reward += np.abs(np.dot(tau,vel)) * self._time_step
 
-    reward = 4*vel_tracking_reward \
-            + 2*yaw_reward \
+    reward = vel_tracking_reward \
+            + yaw_reward \
             + roll_reward \
-            + drift_reward #\
-            #- 0.01 * energy_reward \
-            #- 0.1 * np.linalg.norm(self.robot.GetBaseOrientation() - np.array([0,0,0,1]))
-    print(4*vel_tracking_reward, 2*yaw_reward, roll_reward, drift_reward)
+            + drift_reward \
+            # - 0.01 * energy_reward \
+            # - 0.1 * np.linalg.norm(self.robot.GetBaseOrientation() - np.array([0,0,0,1]))
+    # print(4*vel_tracking_reward, 2*yaw_reward, roll_reward, drift_reward)
 
     return max(reward,0) # keep rewards positive
 
