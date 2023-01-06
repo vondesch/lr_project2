@@ -51,7 +51,7 @@ TIME_STEP = 0.001
 foot_y = 0.0838 # this is the hip length 
 sideSign = np.array([-1, 1, -1, 1]) # get correct hip sign (body right is negative)
 
-env = QuadrupedGymEnv(render=False,             # visualize
+env = QuadrupedGymEnv(render=True,              # visualize
                     on_rack=False,              # useful for debugging! 
                     isRLGymInterface=False,     # not using RL
                     time_step=TIME_STEP,
@@ -63,7 +63,7 @@ env = QuadrupedGymEnv(render=False,             # visualize
                     )
 
 # initialize Hopf Network, supply gait
-cpg = HopfNetwork(time_step=TIME_STEP, omega_swing=8*2*np.pi, omega_stance=2.5*2*np.pi)
+cpg = HopfNetwork(time_step=TIME_STEP, omega_swing= -6*2*np.pi, omega_stance= -1.5*2*np.pi)
 
 TEST_STEPS = int(10 / (TIME_STEP))
 t = np.arange(TEST_STEPS)*TIME_STEP
@@ -85,10 +85,10 @@ mean_velocity = 0
 
 ############## Sample Gains
 # joint PD gains
-kp=np.array([480,480,480])
-kd=np.array([6,6,6])
+kp=np.array([480]*3)
+kd=np.array([6]*3)
 # Cartesian PD gains
-kpCartesian = np.diag([8000]*3)
+kpCartesian = np.diag([8000, 5000, 10000])
 kdCartesian = np.diag([90]*3)
 
 init_pos = env.robot.GetBasePosition()[0:2]
