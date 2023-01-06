@@ -111,7 +111,7 @@ class QuadrupedGymEnv(gym.Env):
       on_rack=False,
       render=False,
       record_video=False,
-      add_noise=True,
+      add_noise=False,
       test_env=False,
       competition_env=False, # NOT ALLOWED FOR TRAINING!
       move_reverse=False,
@@ -424,7 +424,7 @@ class QuadrupedGymEnv(gym.Env):
     energy_reward = 0 
     for tau,vel in zip(self._dt_motor_torques,self._dt_motor_velocities):
       energy_reward += np.abs(np.dot(tau,vel)) * self._time_step
-
+  
     reward = 4*vel_tracking_reward \
             + 2*yaw_reward \
             + roll_reward \
