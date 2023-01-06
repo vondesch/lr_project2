@@ -113,8 +113,8 @@ class QuadrupedGymEnv(gym.Env):
       record_video=False,
       add_noise=True,
       test_env=False,
-      move_reverse=False,
       competition_env=False, # NOT ALLOWED FOR TRAINING!
+      move_reverse=False,
       **kwargs): # any extra arguments from legacy
     """Initialize the quadruped gym environment.
 
@@ -269,15 +269,17 @@ class QuadrupedGymEnv(gym.Env):
 
       elif self._motor_control_mode in ["OLD_CPG", "OLD_CARTESIAN_PD", "OLD_PD", "OLD_TORQUE"]:
         observation_high = (np.concatenate((np.array([ 0.261799,  1.5708, -0.916297857297 ] * self._robot_config.NUM_LEGS), # joint limit
-                                         self._robot_config.VELOCITY_LIMITS,
-                                         np.array([ 1 ] * self._robot_config.NUM_LEGS),
-                                         np.array([ 2*np.pi ] * self._robot_config.NUM_LEGS),
-                                         np.array([1.0]*4))) +  OBSERVATION_EPS) #base orientation
+                                          self._robot_config.VELOCITY_LIMITS, # limit on velocity
+                                          np.array([ 5 ] * self._robot_config.NUM_LEGS), # limit on r (CPG)
+                                          np.array([ 2*np.pi ] * self._robot_config.NUM_LEGS), # limit on theta (CPG)
+                                          np.array([0.15,0.2,0.3]),
+                                          np.array([1.0]*4))) +  OBSERVATION_EPS) # limit on orientation
         observation_low = (np.concatenate((np.array([ -0.261799,  0.261799, -2.69653369433 ] * self._robot_config.NUM_LEGS), # joint limit
-                                         -self._robot_config.VELOCITY_LIMITS/1.5,
-                                         np.array([ 0, ] * self._robot_config.NUM_LEGS),
-                                         np.array([ 0 ] * self._robot_config.NUM_LEGS),
-                                         np.array([-1.0]*4))) -  OBSERVATION_EPS)
+                                          -self._robot_config.VELOCITY_LIMITS,
+                                          np.array([ 0 ] * self._robot_config.NUM_LEGS),
+                                          np.array([ 0 ] * self._robot_config.NUM_LEGS),
+                                          np.array([-0.15,-0.2,-0.3]),
+                                          np.array([-1.0]*4))) -  OBSERVATION_EPS)
       else:
         raise ValueError("Motor control mode does not exist")    
     else:
@@ -342,7 +344,8 @@ class QuadrupedGymEnv(gym.Env):
         self._observation = np.concatenate((self.robot.GetMotorAngles(), 
                                             self.robot.GetMotorVelocities(),
                                             self._cpg.get_r(),
-                                            self._cpg.get_theta(),
+                                            self._cpg.get_theta(), # dr dtheta
+                                            self.robot.GetBaseOrientationRollPitchYaw(),
                                             self.robot.GetBaseOrientation() ))
       else:
         raise ValueError("Motor control mode is wrong")

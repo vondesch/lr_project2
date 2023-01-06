@@ -56,10 +56,10 @@ from utils.utils import plot_results
 from utils.file_utils import get_latest_model, load_all_results
 
 
-LEARNING_ALG = "PPO"
+LEARNING_ALG = "SAC"
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 interm_dir = FILE_PATH + "/logs/intermediate_models/"
-log_dir = interm_dir + '120422211851'
+log_dir = interm_dir + '010223235603_failed'
 
 # initialize env configs (render at test time)
 # check ideal conditions, as well as robustness to UNSEEN noise during training
@@ -67,9 +67,9 @@ env_config = {}
 env_config['render'] = True
 env_config['record_video'] = False
 env_config['add_noise'] = False
-env_config['motor_control_mode'] = 'OLD_PD'
+env_config['motor_control_mode'] = 'OLD_CPG'
 env_config['competition_env'] = False
-env_config['move_reverse'] = False
+env_config['move_reverse'] = True
 
 # get latest model and normalization stats, and plot 
 stats_path = os.path.join(log_dir, "vec_normalize.pkl")
